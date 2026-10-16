@@ -17,7 +17,7 @@ app = Flask(__name__)
 app.secret_key = 'sisurvei-super-secret-key-production-2026'
 
 def get_local_ip():
-    """Mendeteksi IP LAN / Wi-Fi agar bisa langsung diakses dari perangkat HP Android di jaringan lokal"""
+    """Mendeteksi IP LAN / WiFi komputer agar bisa diakses oleh perangkat Android"""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(('8.8.8.8', 80))
@@ -25,7 +25,7 @@ def get_local_ip():
         s.close()
         return ip
     except Exception:
-        return '192.168.200.9'
+        return '127.0.0.1'
 
 # Konfigurasi Upload Foto Petugas
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'petugas')
@@ -76,9 +76,11 @@ def get_current_operator():
     conn.close()
     return current_op, all_active
 
-# Context processor untuk informasi pengguna yang sedang login
+# Context processor untuk informasi pengguna & IP Akses Android
 @app.context_processor
 def inject_auth_user():
+    ip = get_local_ip()
+    port = int(os.environ.get('PORT', 5005))
     return {
         'logged_user': {
             'role': session.get('user_role'),
@@ -86,18 +88,10 @@ def inject_auth_user():
             'name': session.get('user_name'),
             'nip': session.get('nip'),
             'username': session.get('username')
-        }
-    }
-
-# Context processor untuk alamat akses HP Android dan jaringan lokal
-@app.context_processor
-def inject_mobile_info():
-    local_ip = get_local_ip()
-    port = int(os.environ.get('PORT', 5005))
-    return {
-        'local_ip': local_ip,
-        'mobile_url': f"http://{local_ip}:{port}",
-        'server_port': port
+        },
+        'network_ip': ip,
+        'network_port': port,
+        'android_access_url': f"http://{ip}:{port}"
     }
 
 # ==========================================
@@ -729,10 +723,8 @@ def survei_isi(kode_survei):
                 usia = None
         jenis_kelamin = request.form.get('jenis_kelamin', 'Rahasia')
         pendidikan_terakhir = request.form.get('pendidikan_terakhir', '').strip() or None
-        titik_koordinat = request.form.get('titik_koordinat', '').strip() or None
-        alamat_wilayah = request.form.get('alamat_wilayah', '').strip()
-        if not alamat_wilayah and titik_koordinat:
-            alamat_wilayah = f"Koordinat: {titik_koordinat}"
+        titik_koordinat = request.form.get('titik_koordinat', '').strip() or request.form.get('alamat_wilayah', '').strip() or None
+        alamat_wilayah = request.form.get('alamat_wilayah', '').strip() or titik_koordinat
         
         # Petugas penginput
         petugas_id = request.form.get('petugas_id')
@@ -1091,7 +1083,7 @@ def survei_export_excel(id):
     ws["A2"].font = Font(size=10, italic=True, color="4B5563")
     
     # Headers baris 4
-    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "No HP/Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Titik Koordinat (GPS)", "Wilayah / Alamat", "Petugas Penginput"]
+    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "No HP/Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Titik Koordinat / Lokasi", "Petugas Penginput"]
     for q in pertanyaan_list:
         headers.append(f"Q{q['urutan']}: {q['teks_pertanyaan']}")
         
@@ -1115,8 +1107,7 @@ def survei_export_excel(id):
             r['usia'] if r['usia'] else '-',
             r['jenis_kelamin'] or '-',
             r['pendidikan_terakhir'] or '-',
-            r['titik_koordinat'] or '-',
-            r['alamat_wilayah'] or '-',
+            r['titik_koordinat'] or r['alamat_wilayah'] or '-',
             r['nama_petugas'] or 'Mandiri (Publik)'
         ]
         
@@ -1196,7 +1187,7 @@ def survei_export_csv(id):
     out_stream = io.StringIO()
     writer = csv.writer(out_stream)
     
-    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Titik Koordinat (GPS)", "Wilayah", "Petugas Penginput"]
+    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Titik Koordinat / Lokasi", "Petugas Penginput"]
     for q in pertanyaan_list:
         headers.append(f"Q{q['urutan']}: {q['teks_pertanyaan']}")
     writer.writerow(headers)
@@ -1211,8 +1202,7 @@ def survei_export_csv(id):
             r['usia'] or '',
             r['jenis_kelamin'] or '',
             r['pendidikan_terakhir'] or '',
-            r['titik_koordinat'] or '',
-            r['alamat_wilayah'] or '',
+            r['titik_koordinat'] or r['alamat_wilayah'] or '',
             r['nama_petugas'] or 'Mandiri'
         ]
         for q in pertanyaan_list:
@@ -1676,10 +1666,8 @@ def operator_survei_isi(survei_id):
         usia = int(usia) if usia and usia.isdigit() else None
         jenis_kelamin = request.form.get('jenis_kelamin', 'Rahasia')
         pendidikan_terakhir = request.form.get('pendidikan_terakhir', '').strip() or None
-        titik_koordinat = request.form.get('titik_koordinat', '').strip() or None
-        alamat_wilayah = request.form.get('alamat_wilayah', '').strip()
-        if not alamat_wilayah and titik_koordinat:
-            alamat_wilayah = f"Koordinat: {titik_koordinat}"
+        titik_koordinat = request.form.get('titik_koordinat', '').strip() or request.form.get('alamat_wilayah', '').strip() or None
+        alamat_wilayah = request.form.get('alamat_wilayah', '').strip() or titik_koordinat
         
         cursor.execute('''
             INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, titik_koordinat, alamat_wilayah, ip_address, waktu_selesai)
@@ -1770,5 +1758,10 @@ def operator_survei_sukses(survei_id):
 if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5005))
-    print(f"SiSurvei Running on http://127.0.0.1:{port}")
+    local_ip = get_local_ip()
+    print("================================================================")
+    print(" SiSurvei Server Siap Melayani Survei Lapangan & Administrator")
+    print(f" [PC] Akses Komputer Lokal : http://127.0.0.1:{port}")
+    print(f" [HP] Akses HP Android     : http://{local_ip}:{port}")
+    print("================================================================")
     app.run(host='0.0.0.0', port=port, debug=True)

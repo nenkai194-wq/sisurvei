@@ -58,7 +58,7 @@
             <th class="py-3 px-4">Nama Responden</th>
             <th class="py-3 px-4">Survei</th>
             <th class="py-3 px-4">Demografi</th>
-            <th class="py-3 px-4">Wilayah</th>
+            <th class="py-3 px-4">Titik Koordinat / Lokasi</th>
             <th class="py-3 px-4">Petugas Lapangan</th>
             <th class="py-3 px-4">Waktu Submit</th>
             <th class="py-3 px-4 text-center">Aksi</th>
@@ -85,12 +85,14 @@
               <div>{{ r.jenis_kelamin or '-' }} • {{ r.usia or '-' }} th</div>
               <div class="text-[11px] text-slate-400 font-medium">{{ r.pendidikan_terakhir or '-' }}</div>
             </td>
-            <td class="py-3 px-4 text-slate-600">
-              <div>{{ r.alamat_wilayah or '-' }}</div>
-              {% if r.titik_koordinat %}
-              <a href="https://www.google.com/maps?q={{ r.titik_koordinat }}" target="_blank" class="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 hover:bg-blue-100">
-                <i class="fa-solid fa-location-dot text-[9px]"></i> {{ r.titik_koordinat }}
-              </a>
+            <td class="py-3 px-4 text-slate-600 font-mono text-xs">
+              {% set loc = r.titik_koordinat or r.alamat_wilayah %}
+              {% if loc and (',' in loc) and ('-' in loc or '+' in loc or loc[0].isdigit()) %}
+                <a href="https://www.google.com/maps?q={{ loc }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  <i class="fa-solid fa-location-dot text-rose-500 text-[10px]"></i> {{ loc }}
+                </a>
+              {% else %}
+                {{ loc or '-' }}
               {% endif %}
             </td>
             <td class="py-3 px-4">
@@ -189,7 +191,7 @@
         subtitle.innerText = `${r.judul_survei} • Waktu: ${r.waktu_selesai}`;
 
         let html = `
-          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-6 gap-3 text-xs mb-4">
+          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs mb-4">
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Usia / Gender</span>
               <span class="font-bold text-slate-800">${r.usia ? r.usia + ' Tahun' : '-'} / ${r.jenis_kelamin || '-'}</span>
@@ -199,16 +201,20 @@
               <span class="font-bold text-slate-800">${r.pendidikan_terakhir || '-'}</span>
             </div>
             <div>
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Titik GPS</span>
-              <span class="font-bold font-mono text-slate-800 text-[11px]">${r.titik_koordinat ? `<a href="https://www.google.com/maps?q=${r.titik_koordinat}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1"><i class="fa-solid fa-map-pin text-rose-500"></i> ${r.titik_koordinat}</a>` : '-'}</span>
-            </div>
-            <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Kontak</span>
               <span class="font-bold text-slate-800">${r.kontak_responden || '-'}</span>
             </div>
             <div>
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Wilayah</span>
-              <span class="font-bold text-slate-800">${r.alamat_wilayah || '-'}</span>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Titik / Lokasi</span>
+              <span class="font-bold text-slate-800 font-mono text-[11px]">
+                ${(r.titik_koordinat || r.alamat_wilayah) ? (
+                  (r.titik_koordinat || r.alamat_wilayah).includes(',') ?
+                  `<a href="https://www.google.com/maps?q=${encodeURIComponent(r.titik_koordinat || r.alamat_wilayah)}" target="_blank" class="text-blue-600 hover:underline">
+                    📍 ${r.titik_koordinat || r.alamat_wilayah}
+                  </a>` :
+                  (r.titik_koordinat || r.alamat_wilayah)
+                ) : '-'}
+              </span>
             </div>
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Petugas Lapangan</span>

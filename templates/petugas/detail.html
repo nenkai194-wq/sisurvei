@@ -227,7 +227,7 @@
         subtitle.innerText = `${r.judul_survei} • Waktu: ${r.waktu_selesai}`;
 
         let html = `
-          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-6 gap-3 text-xs mb-4">
+          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs mb-4">
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Usia / Gender</span>
               <span class="font-bold text-slate-800">${r.usia ? r.usia + ' Tahun' : '-'} / ${r.jenis_kelamin || '-'}</span>
@@ -237,16 +237,20 @@
               <span class="font-bold text-slate-800">${r.pendidikan_terakhir || '-'}</span>
             </div>
             <div>
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Titik GPS</span>
-              <span class="font-bold font-mono text-slate-800 text-[11px]">${r.titik_koordinat ? `<a href="https://www.google.com/maps?q=${r.titik_koordinat}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1"><i class="fa-solid fa-map-pin text-rose-500"></i> ${r.titik_koordinat}</a>` : '-'}</span>
-            </div>
-            <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Kontak</span>
               <span class="font-bold text-slate-800">${r.kontak_responden || '-'}</span>
             </div>
             <div>
-              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Wilayah</span>
-              <span class="font-bold text-slate-800">${r.alamat_wilayah || '-'}</span>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Titik / Lokasi</span>
+              <span class="font-bold text-slate-800 font-mono text-[11px]">
+                ${(r.titik_koordinat || r.alamat_wilayah) ? (
+                  (r.titik_koordinat || r.alamat_wilayah).includes(',') ?
+                  `<a href="https://www.google.com/maps?q=${encodeURIComponent(r.titik_koordinat || r.alamat_wilayah)}" target="_blank" class="text-blue-600 hover:underline">
+                    📍 ${r.titik_koordinat || r.alamat_wilayah}
+                  </a>` :
+                  (r.titik_koordinat || r.alamat_wilayah)
+                ) : '-'}
+              </span>
             </div>
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Petugas Lapangan</span>

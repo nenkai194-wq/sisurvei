@@ -172,7 +172,7 @@
                       <th class="py-2 px-3">No</th>
                       <th class="py-2 px-3">Responden</th>
                       <th class="py-2 px-3">Demografi</th>
-                      <th class="py-2 px-3">Wilayah</th>
+                      <th class="py-2 px-3">Titik Koordinat / Lokasi</th>
                       <th class="py-2 px-3">Waktu</th>
                       <th class="py-2 px-3 text-center">Aksi</th>
                     </tr>
@@ -186,12 +186,14 @@
                         <div>{{ r.jenis_kelamin or '-' }}, {{ r.usia or '-' }} th</div>
                         <div class="text-[10px] text-slate-400">{{ r.pendidikan_terakhir or '-' }}</div>
                       </td>
-                      <td class="py-2 px-3 text-slate-600 text-xs">
-                        <div>{{ r.alamat_wilayah or '-' }}</div>
-                        {% if r.titik_koordinat %}
-                        <a href="https://www.google.com/maps?q={{ r.titik_koordinat }}" target="_blank" class="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 hover:bg-emerald-100">
-                          <i class="fa-solid fa-location-dot text-[9px]"></i> {{ r.titik_koordinat }}
-                        </a>
+                      <td class="py-2 px-3 text-slate-600 font-mono text-[11px]">
+                        {% set loc = r.titik_koordinat or r.alamat_wilayah %}
+                        {% if loc and (',' in loc) and ('-' in loc or '+' in loc or loc[0].isdigit()) %}
+                          <a href="https://www.google.com/maps?q={{ loc }}" target="_blank" class="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            <i class="fa-solid fa-location-dot text-[10px] text-rose-500"></i> {{ loc }}
+                          </a>
+                        {% else %}
+                          {{ loc or '-' }}
                         {% endif %}
                       </td>
                       <td class="py-2 px-3 text-slate-400">{{ r.waktu_selesai|format_datetime }}</td>
@@ -286,12 +288,19 @@
         title.innerText = r.nama_responden || 'Responden Anonim';
         subtitle.innerText = `${r.judul_survei} • Waktu: ${r.waktu_selesai || '-'}`;
 
+        const loc = r.titik_koordinat || r.alamat_wilayah || '-';
+        let locHtml = loc;
+        if (loc !== '-' && loc.includes(',')) {
+          locHtml = `<a href="https://www.google.com/maps?q=${encodeURIComponent(loc)}" target="_blank" class="inline-flex items-center gap-1 text-emerald-700 font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 hover:underline">
+            <i class="fa-solid fa-location-crosshairs text-rose-500"></i> ${loc} <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+          </a>`;
+        }
+
         let html = `
-          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1 mb-3">
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5 mb-3">
             <p><strong>Demografi:</strong> ${r.jenis_kelamin || '-'}, ${r.usia || '-'} tahun</p>
             <p><strong>Pendidikan Terakhir:</strong> ${r.pendidikan_terakhir || '-'}</p>
-            <p><strong>Titik Koordinat (GPS):</strong> ${r.titik_koordinat ? `<a href="https://www.google.com/maps?q=${r.titik_koordinat}" target="_blank" class="font-mono font-bold text-emerald-700 underline"><i class="fa-solid fa-map-pin mr-1"></i>${r.titik_koordinat} (Cek di Google Maps)</a>` : '-'}</p>
-            <p><strong>Wilayah:</strong> ${r.alamat_wilayah || '-'}</p>
+            <p><strong>Titik Koordinat / Lokasi:</strong> ${locHtml}</p>
             <p><strong>Kontak:</strong> ${r.kontak_responden || '-'}</p>
           </div>
           <div class="space-y-2.5">
