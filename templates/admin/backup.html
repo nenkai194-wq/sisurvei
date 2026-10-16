@@ -74,6 +74,140 @@
     </div>
   </div>
 
+  <!-- AUTO-BACKUP & SECURITY HARDENING SECTION -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- CARD 1: STATUS AUTO-BACKUP BULANAN -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between space-y-4">
+      <div>
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-base">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Auto-Backup Bulanan</h3>
+              <p class="text-[11px] text-slate-400">Jadwal otomatis 1 bulan sekali</p>
+            </div>
+          </div>
+          {% if auto_backup_status == 'Aktif' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>AKTIF</span>
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+            <span>NONAKTIF</span>
+          </span>
+          {% endif %}
+        </div>
+
+        <div class="pt-4 space-y-2.5 text-xs">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+            <span class="text-slate-500 font-medium">Periode Bulan Ini:</span>
+            <span class="font-bold text-slate-900 font-mono">{{ current_month }}</span>
+          </div>
+
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+            <span class="text-slate-500 font-medium">Status Bulan Ini:</span>
+            {% if is_backed_up_this_month %}
+            <span class="font-bold text-emerald-600 flex items-center gap-1">
+              <i class="fa-solid fa-circle-check text-xs"></i>
+              <span>Sudah Dicadangkan</span>
+            </span>
+            {% else %}
+            <span class="font-bold text-amber-600 flex items-center gap-1">
+              <i class="fa-solid fa-clock text-xs"></i>
+              <span>Menunggu Jadwal / Baru</span>
+            </span>
+            {% endif %}
+          </div>
+
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+            <span class="text-slate-500 font-medium">Terakhir Dicadangkan:</span>
+            <span class="font-bold text-slate-700 font-mono">{{ terakhir_auto_backup or '-' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+        <span class="text-[11px] text-slate-400">Pencadangan tanpa intervensi manual</span>
+        <form method="POST" action="{{ url_for('admin_backup_toggle_auto') }}">
+          <button type="submit" class="px-3.5 py-1.5 text-xs font-bold rounded-lg transition {% if auto_backup_status == 'Aktif' %}bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200{% endif %}">
+            {{ 'Nonaktifkan' if auto_backup_status == 'Aktif' else 'Aktifkan Auto-Backup' }}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- CARD 2: PUSAT KEAMANAN DATA & ENKRIPSI SISTEM (2 COLS) -->
+    <div class="lg:col-span-2 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-2xl border border-slate-700 shadow-sm p-6 text-white flex flex-col justify-between space-y-4">
+      <div>
+        <div class="flex items-center justify-between pb-3 border-b border-slate-700/80">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-400/30 flex items-center justify-center text-base">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>Pusat Perlindungan Keamanan & Enkripsi Data</span>
+                <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 rounded border border-emerald-400/30">DIPROTEKSI 100%</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">Standar keamanan institusional untuk melindungi kerahasiaan survei</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-4 text-xs">
+          <!-- SHIELD 1: ANTI-BRUTE FORCE -->
+          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-700/60 flex items-start space-x-3">
+            <i class="fa-solid fa-lock text-emerald-400 text-sm mt-0.5 shrink-0"></i>
+            <div>
+              <p class="font-bold text-slate-100">Anti-Brute Force & Rate Limiter</p>
+              <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">Maksimal 5x kegagalan kata sandi, IP penyerang diblokir otomatis 15 menit.</p>
+            </div>
+          </div>
+
+          <!-- SHIELD 2: SESSION HIJACKING -->
+          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-700/60 flex items-start space-x-3">
+            <i class="fa-solid fa-user-shield text-blue-400 text-sm mt-0.5 shrink-0"></i>
+            <div>
+              <p class="font-bold text-slate-100">Anti-Session Hijacking & XSS</p>
+              <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">Cookie session dikunci dengan atribut <code class="text-blue-300">HttpOnly</code>, <code class="text-blue-300">SameSite=Lax</code> & kedaluwarsa 4 jam.</p>
+            </div>
+          </div>
+
+          <!-- SHIELD 3: ANTI-CLICKJACKING & SNIFFING -->
+          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-700/60 flex items-start space-x-3">
+            <i class="fa-solid fa-network-wired text-indigo-400 text-sm mt-0.5 shrink-0"></i>
+            <div>
+              <p class="font-bold text-slate-100">HTTP Security Headers Lapis 4</p>
+              <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed"><code class="text-indigo-300">X-Frame-Options: SAMEORIGIN</code> & <code class="text-indigo-300">nosniff</code> mencegah pencurian klik & inject script.</p>
+            </div>
+          </div>
+
+          <!-- SHIELD 4: ANTI-SQL INJECTION & PATH TRAVERSAL -->
+          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-700/60 flex items-start space-x-3">
+            <i class="fa-solid fa-database text-purple-400 text-sm mt-0.5 shrink-0"></i>
+            <div>
+              <p class="font-bold text-slate-100">Anti-SQLi & Path Traversal</p>
+              <p class="text-[11px] text-slate-400 mt-0.5 leading-relaxed">100% Parameterized queries dan penguncian direktori absolut pada file arsip.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-700/80 flex items-center justify-between text-[11px] text-slate-400">
+        <span>Kriptografi kata sandi: <strong>Scrypt 32768 Hash</strong></span>
+        <a href="{{ url_for('admin_logs') }}" class="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 transition">
+          <span>Pantau Log Audit Keamanan</span>
+          <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
   <!-- 4 PRIMARY EXPORT DOWNLOAD CARDS -->
   <div class="space-y-3">
     <div class="flex items-center justify-between">

@@ -5,18 +5,78 @@ import csv
 import socket
 import zipfile
 import shutil
+import threading
+import time
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import (
     Flask, render_template, request, redirect, url_for, 
-    flash, jsonify, send_file, abort, session
+    flash, jsonify, send_file, abort, session, has_request_context
 )
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash, generate_password_hash
 from database import get_db, init_db
 
 app = Flask(__name__)
-app.secret_key = 'sisurvei-super-secret-key-production-2026'
+app.secret_key = os.environ.get('SECRET_KEY', 'sisurvei-super-secret-key-production-2026')
+
+# 1. PENGUATAN KEAMANAN COOKIE & SESSION (ANTI-SESSION HIJACKING & XSS)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=4)
+
+# 2. HTTP SECURITY HEADERS (ANTI-CLICKJACKING, ANTI-SNIFFING, ANTI-XSS)
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
+
+# 3. SISTEM PERTAHANAN ANTI-BRUTE FORCE & LOGIN THROTTLING
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_MINUTES = 15
+failed_attempts_tracker = {}
+failed_tracker_lock = threading.Lock()
+
+def check_security_lockout(ip, identifier):
+    """Mengecek apakah IP atau User sedang dalam status terblokir akibat percobaan masuk berulang"""
+    now = datetime.now()
+    with failed_tracker_lock:
+        for key in (ip, f"user_{identifier}"):
+            if key in failed_attempts_tracker:
+                info = failed_attempts_tracker[key]
+                if info.get('locked_until') and now < info['locked_until']:
+                    rem_mins = int((info['locked_until'] - now).total_seconds() / 60) + 1
+                    return True, rem_mins
+                elif info.get('locked_until') and now >= info['locked_until']:
+                    del failed_attempts_tracker[key]
+    return False, 0
+
+def record_failed_attempt(ip, identifier):
+    """Mencatat upaya login gagal dan mengaktifkan penguncian otomatis jika melebihi batas"""
+    now = datetime.now()
+    with failed_tracker_lock:
+        for key in (ip, f"user_{identifier}"):
+            if key not in failed_attempts_tracker:
+                failed_attempts_tracker[key] = {'count': 1, 'last_attempt': now, 'locked_until': None}
+            else:
+                info = failed_attempts_tracker[key]
+                if (now - info['last_attempt']).total_seconds() > 900:
+                    info['count'] = 1
+                else:
+                    info['count'] += 1
+                info['last_attempt'] = now
+                if info['count'] >= MAX_FAILED_ATTEMPTS:
+                    info['locked_until'] = now + timedelta(minutes=LOCKOUT_MINUTES)
+                    log_activity("Peringatan Keamanan", f"Terdeteksi upaya serangan brute force pada '{identifier}' dari IP {ip}. Akses diblokir otomatis selama {LOCKOUT_MINUTES} menit.")
+
+def clear_failed_attempt(ip, identifier):
+    """Membersihkan riwayat percobaan gagal setelah login berhasil"""
+    with failed_tracker_lock:
+        failed_attempts_tracker.pop(ip, None)
+        failed_attempts_tracker.pop(f"user_{identifier}", None)
 
 def get_local_ip():
     """Mendeteksi IP LAN / WiFi komputer agar bisa diakses oleh perangkat Android"""
@@ -68,10 +128,16 @@ def log_activity(aksi, rincian=""):
     try:
         conn = get_db()
         cursor = conn.cursor()
-        uid = session.get('user_id')
-        uname = session.get('user_name', 'System')
-        role = session.get('admin_level') or session.get('user_role', 'guest')
-        ip = request.remote_addr or '127.0.0.1'
+        if has_request_context():
+            uid = session.get('user_id')
+            uname = session.get('user_name', 'System')
+            role = session.get('admin_level') or session.get('user_role', 'guest')
+            ip = request.remote_addr or '127.0.0.1'
+        else:
+            uid = 0
+            uname = 'Sistem Otomatis'
+            role = 'system'
+            ip = '127.0.0.1'
         cursor.execute('''
             INSERT INTO audit_logs (user_id, user_name, role, aksi, rincian, ip_address)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -217,6 +283,12 @@ def login():
         if not identifier or not password:
             flash("Mohon lengkapi NIP/Username dan Kata Sandi.", "warning")
             return render_template('auth/login.html')
+
+        client_ip = request.remote_addr or '127.0.0.1'
+        is_locked, remaining_mins = check_security_lockout(client_ip, identifier)
+        if is_locked:
+            flash(f"Peringatan Keamanan: Terlalu banyak percobaan masuk yang gagal. Akses diblokir sementara selama {remaining_mins} menit demi melindungi data dari peretasan.", "danger")
+            return render_template('auth/login.html')
             
         conn = get_db()
         cursor = conn.cursor()
@@ -232,6 +304,7 @@ def login():
                     flash("Akun Administrator ini berstatus Nonaktif. Silakan hubungi Super Admin.", "danger")
                     return render_template('auth/login.html')
 
+                clear_failed_attempt(client_ip, identifier)
                 session.clear()
                 session['user_role'] = 'admin'
                 session['admin_level'] = user['role'] if user['role'] in ('super_admin', 'admin') else 'admin'
@@ -248,6 +321,7 @@ def login():
                     return redirect(next_url)
                 return redirect(url_for('dashboard'))
             else:
+                record_failed_attempt(client_ip, identifier)
                 flash("Username/email atau kata sandi Administrator salah!", "danger")
                 return render_template('auth/login.html')
         else:
@@ -263,6 +337,7 @@ def login():
                     
                 pwd_hash = petugas['password_hash']
                 if pwd_hash and check_password_hash(pwd_hash, password):
+                    clear_failed_attempt(client_ip, identifier)
                     session.clear()
                     session['user_role'] = 'operator'
                     session['operator_id'] = petugas['id']
@@ -274,7 +349,12 @@ def login():
                     if next_url and next_url.startswith('/operator'):
                         return redirect(next_url)
                     return redirect(url_for('operator_tugas'))
+                else:
+                    record_failed_attempt(client_ip, identifier)
+                    flash("NIP atau kata sandi Petugas Enumerator tidak sesuai!", "danger")
+                    return render_template('auth/login.html')
                     
+            record_failed_attempt(client_ip, identifier)
             flash("NIP atau kata sandi Petugas Enumerator tidak sesuai!", "danger")
             return render_template('auth/login.html')
             
@@ -2222,7 +2302,7 @@ def build_full_backup_zip():
         'nama_aplikasi': 'SiSurvei - Sistem Informasi & Manajemen Survei Terpadu',
         'versi_backup': '2.6 PRO',
         'waktu_backup': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'dibuat_oleh': f"{session.get('user_name', 'Super Admin')} (@{session.get('username', 'admin')})",
+        'dibuat_oleh': f"{session.get('user_name', 'Super Admin')} (@{session.get('username', 'admin')})" if has_request_context() else 'Sistem Otomatis (Auto-Backup Bulanan)',
         'ringkasan_data': {
             'total_kegiatan_survei': total_survei,
             'total_pertanyaan': total_pertanyaan,
@@ -2380,11 +2460,81 @@ def build_master_excel_backup():
     timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
     return excel_buf, timestamp_str
 
+def run_monthly_auto_backup_if_due():
+    """Memeriksa apakah cadangan bulanan otomatis untuk bulan berjalan sudah dibuat. Jika belum, buat secara otomatis."""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Cek konfigurasi auto backup
+        cursor.execute("SELECT nilai FROM pengaturan WHERE kunci = 'auto_backup_bulanan'")
+        row_cfg = cursor.fetchone()
+        if row_cfg and row_cfg['nilai'] == 'Nonaktif':
+            conn.close()
+            return None
+            
+        current_month_key = datetime.now().strftime('%Y-%m')
+        cursor.execute("SELECT nilai FROM pengaturan WHERE kunci = 'terakhir_auto_backup'")
+        row_last = cursor.fetchone()
+        last_month = row_last['nilai'] if row_last else None
+        
+        if last_month != current_month_key:
+            buf, timestamp_str = build_full_backup_zip()
+            filename = f"auto_monthly_backup_{current_month_key}.zip"
+            filepath = os.path.join(BACKUP_DIR, filename)
+            
+            with open(filepath, 'wb') as f:
+                f.write(buf.getbuffer())
+                
+            cursor.execute('''
+                INSERT INTO pengaturan (kunci, nilai, kategori, updated_at)
+                VALUES ('terakhir_auto_backup', ?, 'Keamanan', CURRENT_TIMESTAMP)
+                ON CONFLICT(kunci) DO UPDATE SET nilai = excluded.nilai, updated_at = CURRENT_TIMESTAMP
+            ''', (current_month_key,))
+            
+            cursor.execute('''
+                INSERT INTO audit_logs (user_id, user_name, role, aksi, rincian, ip_address)
+                VALUES (0, 'Sistem Keamanan Otomatis', 'system', 'Auto-Backup Bulanan', ?, '127.0.0.1')
+            ''', (f"Sistem otomatis mencadangkan seluruh aset dan database untuk periode bulanan {current_month_key} ({filename})",))
+            
+            conn.commit()
+            conn.close()
+            print(f"[AUTO-BACKUP] Berhasil membuat arsip bulanan otomatis: {filename}")
+            return filename
+            
+        conn.close()
+        return None
+    except Exception as e:
+        print(f"[AUTO-BACKUP WARNING] {e}")
+        return None
+
+def start_auto_backup_daemon():
+    """Menjalankan background thread untuk memastikan backup bulanan selalu terpantau secara mandiri"""
+    def daemon_worker():
+        while True:
+            run_monthly_auto_backup_if_due()
+            time.sleep(21600)  # Cek setiap 6 jam
+    
+    t = threading.Thread(target=daemon_worker, daemon=True, name="AutoBackupDaemon")
+    t.start()
+
 @app.route('/admin/backup')
 @super_admin_required
 def admin_backup():
+    # Jalankan pengecekan auto-backup jika jatuh tempo
+    run_monthly_auto_backup_if_due()
+    
     conn = get_db()
     cursor = conn.cursor()
+    
+    # Ambil status konfigurasi auto backup
+    cursor.execute("SELECT nilai FROM pengaturan WHERE kunci = 'auto_backup_bulanan'")
+    row_status = cursor.fetchone()
+    auto_backup_status = row_status['nilai'] if row_status else 'Aktif'
+    
+    cursor.execute("SELECT nilai FROM pengaturan WHERE kunci = 'terakhir_auto_backup'")
+    row_last = cursor.fetchone()
+    terakhir_auto_backup = row_last['nilai'] if row_last else '-'
     
     # Statistik sistem
     cursor.execute("SELECT COUNT(*) FROM survei")
@@ -2400,6 +2550,9 @@ def admin_backup():
     cursor.execute("SELECT COUNT(*) FROM users")
     total_users = cursor.fetchone()[0]
     conn.close()
+    
+    current_month = datetime.now().strftime('%Y-%m')
+    is_backed_up_this_month = (terakhir_auto_backup == current_month)
     
     # Ukuran file database
     db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sisurvei.db')
@@ -2428,6 +2581,7 @@ def admin_backup():
                     'size_kb': round(stat.st_size / 1024, 1),
                     'created_at': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
                     'is_zip': fname.endswith('.zip'),
+                    'is_auto': 'auto_monthly' in fname,
                     'is_db': fname.endswith('.db')
                 })
                 
@@ -2442,8 +2596,34 @@ def admin_backup():
         total_uploads=total_uploads,
         db_size_kb=db_size_kb,
         uploads_size_kb=uploads_size_kb,
-        backup_files=backup_files
+        backup_files=backup_files,
+        auto_backup_status=auto_backup_status,
+        terakhir_auto_backup=terakhir_auto_backup,
+        current_month=current_month,
+        is_backed_up_this_month=is_backed_up_this_month
     )
+
+@app.route('/admin/backup/toggle-auto', methods=['POST'])
+@super_admin_required
+def admin_backup_toggle_auto():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT nilai FROM pengaturan WHERE kunci = 'auto_backup_bulanan'")
+    row = cursor.fetchone()
+    current_val = row['nilai'] if row else 'Aktif'
+    new_val = 'Nonaktif' if current_val == 'Aktif' else 'Aktif'
+    
+    cursor.execute('''
+        INSERT INTO pengaturan (kunci, nilai, kategori, updated_at)
+        VALUES ('auto_backup_bulanan', ?, 'Keamanan', CURRENT_TIMESTAMP)
+        ON CONFLICT(kunci) DO UPDATE SET nilai = excluded.nilai, updated_at = CURRENT_TIMESTAMP
+    ''', (new_val,))
+    conn.commit()
+    conn.close()
+    
+    log_activity("Ubah Konfigurasi Auto-Backup", f"Super Admin mengubah status auto-backup bulanan menjadi: {new_val}")
+    flash(f"Fitur Pencadangan Otomatis Bulanan sekarang berstatus: {new_val.upper()}.", "success")
+    return redirect(url_for('admin_backup'))
 
 @app.route('/admin/backup/download/<string:fmt>')
 @super_admin_required
@@ -2515,23 +2695,29 @@ def admin_backup_create_snapshot():
 @super_admin_required
 def admin_backup_download_file(filename):
     clean_name = secure_filename(filename)
-    filepath = os.path.join(BACKUP_DIR, clean_name)
-    if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True, download_name=clean_name)
-    flash("File backup tidak ditemukan di server.", "danger")
-    return redirect(url_for('admin_backup'))
+    filepath = os.path.abspath(os.path.join(BACKUP_DIR, clean_name))
+    
+    # Proteksi Path Traversal (mencegah penyerang mendownload file sistem di luar folder backups)
+    if not filepath.startswith(os.path.abspath(BACKUP_DIR)) or not os.path.exists(filepath):
+        flash("Akses file tidak diizinkan atau file tidak ditemukan.", "danger")
+        return redirect(url_for('admin_backup'))
+        
+    return send_file(filepath, as_attachment=True, download_name=clean_name)
 
 @app.route('/admin/backup/delete/<string:filename>', methods=['POST'])
 @super_admin_required
 def admin_backup_delete_file(filename):
     clean_name = secure_filename(filename)
-    filepath = os.path.join(BACKUP_DIR, clean_name)
-    if os.path.exists(filepath):
-        os.remove(filepath)
-        log_activity("Hapus File Backup", f"Super Admin menghapus arsip cadangan: {clean_name}")
-        flash(f"File arsip backup '{clean_name}' berhasil dihapus dari server.", "success")
-    else:
-        flash("File backup tidak ditemukan.", "danger")
+    filepath = os.path.abspath(os.path.join(BACKUP_DIR, clean_name))
+    
+    # Proteksi Path Traversal
+    if not filepath.startswith(os.path.abspath(BACKUP_DIR)) or not os.path.exists(filepath):
+        flash("Akses penghapusan file tidak sah.", "danger")
+        return redirect(url_for('admin_backup'))
+        
+    os.remove(filepath)
+    log_activity("Hapus File Backup", f"Super Admin menghapus arsip cadangan: {clean_name}")
+    flash(f"File arsip backup '{clean_name}' berhasil dihapus dari server.", "success")
     return redirect(url_for('admin_backup'))
 
 @app.route('/admin/backup/restore', methods=['POST'])
@@ -2582,10 +2768,13 @@ def admin_backup_restore():
 
 if __name__ == '__main__':
     init_db()
+    start_auto_backup_daemon()
     port = int(os.environ.get('PORT', 5005))
     local_ip = get_local_ip()
     print("================================================================")
     print(" SiSurvei Server Siap Melayani Survei Lapangan & Administrator")
+    print(" [KEAMANAN] Anti-Brute Force, Rate Limiting & HttpOnly Cookies: AKTIF")
+    print(" [CADANGAN] Auto-Backup Bulanan Terjadwal (1 Bulan Sekali): AKTIF")
     print(f" [PC] Akses Komputer Lokal : http://127.0.0.1:{port}")
     print(f" [HP] Akses HP Android     : http://{local_ip}:{port}")
     print("================================================================")

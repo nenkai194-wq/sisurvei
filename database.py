@@ -186,6 +186,10 @@ def init_db():
         ('telepon_resmi', '021-8889991', 'Kontak'),
         ('alamat_kantor', 'Gedung Informasi & Statistik Lt. 4, Jakarta', 'Kontak'),
         ('zona_waktu', 'Asia/Jakarta (WIB)', 'Sistem'),
+        ('auto_backup_bulanan', 'Aktif', 'Keamanan'),
+        ('terakhir_auto_backup', '', 'Keamanan'),
+        ('keamanan_anti_bruteforce', 'Aktif', 'Keamanan'),
+        ('keamanan_max_percobaan', '5', 'Keamanan'),
     ]
     for k, v, kat in default_settings:
         cursor.execute("INSERT OR IGNORE INTO pengaturan (kunci, nilai, kategori) VALUES (?, ?, ?)", (k, v, kat))

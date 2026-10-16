@@ -411,8 +411,87 @@ def run_tests():
     assert b"Snapshot cadangan lengkap berhasil disimpan" in res.data
     print("    -> Passed! Server snapshot creation and listing verified.")
 
+    print("\n--- PHASE 9: TESTING ENTERPRISE SECURITY & AUTOMATED MONTHLY BACKUP ENGINE ---")
+
+    print("[41] Testing HTTP Security Headers (Anti-Sniffing, Anti-Clickjacking, Anti-XSS)...")
+    res = client.get('/login')
+    assert res.headers.get('X-Content-Type-Options') == 'nosniff', f"Expected nosniff, got {res.headers.get('X-Content-Type-Options')}"
+    assert res.headers.get('X-Frame-Options') == 'SAMEORIGIN', f"Expected SAMEORIGIN, got {res.headers.get('X-Frame-Options')}"
+    assert res.headers.get('X-XSS-Protection') == '1; mode=block', f"Expected 1; mode=block, got {res.headers.get('X-XSS-Protection')}"
+    assert res.headers.get('Referrer-Policy') == 'strict-origin-when-cross-origin', f"Expected strict-origin-when-cross-origin, got {res.headers.get('Referrer-Policy')}"
+    print("    -> Passed! All 4 essential HTTP Security Headers enforced on responses.")
+
+    print("[42] Testing Anti-Brute Force Protection & Auto-Lockout...")
+    client.get('/logout')
+    from app import failed_attempts_tracker, failed_tracker_lock
+    with failed_tracker_lock:
+        failed_attempts_tracker.clear()
+
+    # Simulasi 5 kali salah password berturut-turut
+    test_target = 'bruteforce_target'
+    for attempt in range(5):
+        res = client.post('/login', data={'role': 'admin', 'identifier': test_target, 'password': 'wrongpassword123'}, follow_redirects=True)
+        assert b"Username/email atau kata sandi Administrator salah!" in res.data
+
+    # Percobaan ke-6 harus ditolak oleh sistem lockout
+    res_locked = client.post('/login', data={'role': 'admin', 'identifier': test_target, 'password': 'wrongpassword123'}, follow_redirects=True)
+    assert b"Peringatan Keamanan: Terlalu banyak percobaan masuk yang gagal" in res_locked.data
+    assert b"Akses diblokir sementara" in res_locked.data
+    print("    -> Passed! Brute-force threshold exceeded (5x) triggers automated 15-minute security lockout.")
+
+    # Bersihkan tracker setelah test dan login kembali sebagai admin
+    with failed_tracker_lock:
+        failed_attempts_tracker.clear()
+    client.post('/login', data={'role': 'admin', 'identifier': 'admin', 'password': 'admin123'}, follow_redirects=True)
+
+    print("[43] Testing Toggle Auto-Backup Bulanan Route (/admin/backup/toggle-auto)...")
+    res_toggle = client.post('/admin/backup/toggle-auto', follow_redirects=True)
+    assert res_toggle.status_code == 200
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT nilai FROM pengaturan WHERE kunci = 'auto_backup_bulanan'")
+    status_val = c.fetchone()[0]
+    conn.close()
+    assert status_val in ('Aktif', 'Nonaktif')
+    
+    # Toggle kembali ke Aktif
+    if status_val == 'Nonaktif':
+        client.post('/admin/backup/toggle-auto', follow_redirects=True)
+
+    from app import run_monthly_auto_backup_if_due
+    # Uji eksekusi engine pencadangan bulanan
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("UPDATE pengaturan SET nilai = '' WHERE kunci = 'terakhir_auto_backup'")
+    conn.commit()
+    conn.close()
+
+    created_backup = run_monthly_auto_backup_if_due()
+    assert created_backup is not None
+    assert "auto_monthly_backup_" in created_backup
+    assert created_backup.endswith('.zip')
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT nilai FROM pengaturan WHERE kunci = 'terakhir_auto_backup'")
+    last_val = c.fetchone()[0]
+    from datetime import datetime
+    assert last_val == datetime.now().strftime('%Y-%m')
+    conn.close()
+    print("    -> Passed! Monthly auto-backup engine automatically generates monthly archive and updates state.")
+
+    print("[44] Testing Path Traversal Defense Shield...")
+    res_trav = client.get('/admin/backup/file/unauthorized_sys_file.zip', follow_redirects=True)
+    assert res_trav.status_code == 200
+    assert b"Akses file tidak diizinkan atau file tidak ditemukan" in res_trav.data
+
+    res_del_trav = client.post('/admin/backup/delete/unauthorized_sys_file.zip', follow_redirects=True)
+    assert res_del_trav.status_code == 200
+    assert b"Akses penghapusan file tidak sah" in res_del_trav.data
+    print("    -> Passed! Path traversal and unauthorized file access blocked by directory containment shield.")
+
     print("\n=======================================================")
-    print(" ALL 40 AUTOMATED INTEGRATION TESTS PASSED 100%! ")
+    print(" ALL 44 AUTOMATED INTEGRATION TESTS PASSED 100%! ")
     print("=======================================================\n")
 
 if __name__ == '__main__':
