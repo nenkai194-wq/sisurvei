@@ -190,9 +190,54 @@
               </select>
             </div>
 
-            <div class="sm:col-span-2">
-              <label class="block text-xs font-bold text-slate-700 mb-1">Wilayah / Alamat Domisili</label>
-              <input type="text" name="alamat_wilayah" placeholder="Contoh: RT 03/RW 05 Kelurahan Menteng, Jakarta Pusat" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <!-- Titik Koordinat GPS & Lokasi Responden -->
+            <div class="sm:col-span-2 p-3.5 sm:p-4 bg-blue-50/60 rounded-2xl border border-blue-200/90 space-y-3">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <label class="block text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    <i class="fa-solid fa-location-dot text-blue-600 mr-1.5"></i>Titik Koordinat Lokasi (GPS)
+                  </label>
+                  <p class="text-[11px] text-slate-500">Ambil titik koordinat otomatis menggunakan sensor GPS perangkat Anda</p>
+                </div>
+                <button 
+                  type="button" 
+                  onclick="ambilKoordinatPublicGPS()" 
+                  id="btnGetPublicGPS"
+                  class="w-full sm:w-auto px-4 py-2 bg-blue-600 active:bg-blue-700 hover:bg-blue-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition shrink-0"
+                >
+                  <i class="fa-solid fa-location-crosshairs text-sm" id="iconPublicGPS"></i>
+                  <span id="labelPublicGPS">Kunci Titik GPS</span>
+                </button>
+              </div>
+
+              <!-- Input Koordinat (Latitude, Longitude) -->
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <i class="fa-solid fa-satellite-dish text-xs text-blue-600"></i>
+                </div>
+                <input 
+                  type="text" 
+                  name="titik_koordinat" 
+                  id="titik_koordinat_public" 
+                  placeholder="-6.175392, 106.827153 (Latitude, Longitude)" 
+                  class="w-full pl-9 pr-3.5 py-2 text-xs sm:text-sm font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                >
+              </div>
+
+              <!-- Status Box & Quick Actions -->
+              <div id="gpsPublicStatusBox" class="hidden"></div>
+
+              <!-- Alamat / Wilayah Domisili -->
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Wilayah / Alamat Domisili Responden</label>
+                <input 
+                  type="text" 
+                  name="alamat_wilayah" 
+                  id="alamat_wilayah_public" 
+                  placeholder="Contoh: RT 03/RW 05 Kelurahan Menteng, Jakarta Pusat" 
+                  class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                >
+              </div>
             </div>
           </div>
         </div>
@@ -412,6 +457,88 @@
 
     document.getElementById('surveyForm').addEventListener('input', updateProgressBar);
     document.getElementById('surveyForm').addEventListener('change', updateProgressBar);
+
+    // Ambil Koordinat GPS Pengisi Publik
+    function ambilKoordinatPublicGPS() {
+      const btn = document.getElementById('btnGetPublicGPS');
+      const label = document.getElementById('labelPublicGPS');
+      const icon = document.getElementById('iconPublicGPS');
+      const coordInput = document.getElementById('titik_koordinat_public');
+      const statusBox = document.getElementById('gpsPublicStatusBox');
+
+      if (!navigator.geolocation) {
+        alert('Browser Anda tidak mendukung deteksi GPS.');
+        return;
+      }
+
+      btn.disabled = true;
+      label.innerText = 'Mencari GPS...';
+      icon.className = 'fa-solid fa-spinner fa-spin text-sm';
+
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          const lat = position.coords.latitude.toFixed(6);
+          const lng = position.coords.longitude.toFixed(6);
+          const acc = Math.round(position.coords.accuracy);
+          const coordStr = `${lat}, ${lng}`;
+          coordInput.value = coordStr;
+
+          btn.disabled = false;
+          label.innerText = 'Perbarui GPS';
+          icon.className = 'fa-solid fa-location-crosshairs text-sm';
+
+          statusBox.classList.remove('hidden');
+          statusBox.innerHTML = `
+            <div class="flex items-center justify-between gap-2 p-2.5 bg-blue-100/90 border border-blue-300 rounded-xl text-xs text-blue-900">
+              <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-check text-blue-700 text-sm"></i>
+                <span><strong>GPS Terkunci:</strong> <span class="font-mono font-bold">${coordStr}</span> <span class="text-[10px] text-blue-800 bg-blue-200/80 px-1.5 py-0.5 rounded font-mono">±${acc}m</span></span>
+              </div>
+              <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener" class="text-xs font-bold text-blue-800 underline flex items-center gap-1 shrink-0">
+                <i class="fa-solid fa-map-location-dot"></i> Maps
+              </a>
+            </div>
+          `;
+          updateProgressBar();
+        },
+        function(err) {
+          btn.disabled = false;
+          label.innerText = 'Kunci Titik GPS';
+          icon.className = 'fa-solid fa-location-crosshairs text-sm';
+
+          statusBox.classList.remove('hidden');
+          statusBox.innerHTML = `
+            <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
+              <p><i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1"></i>Izin lokasi tidak aktif atau sinyal GPS lemah. Anda dapat mengetik koordinat langsung atau menggunakan titik cepat:</p>
+              <div class="pt-1 flex flex-wrap gap-2 text-[11px]">
+                <button type="button" onclick="setDemoCoordPublic('-6.175392, 106.827153', 'Jakarta Pusat')" class="font-bold text-blue-700 hover:underline">📍 Jakarta Pusat</button>
+                <button type="button" onclick="setDemoCoordPublic('-6.208763, 106.845599', 'Jakarta Selatan')" class="font-bold text-blue-700 hover:underline">📍 Jakarta Selatan</button>
+              </div>
+            </div>
+          `;
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    }
+
+    function setDemoCoordPublic(coord, wilayah) {
+      document.getElementById('titik_koordinat_public').value = coord;
+      const statusBox = document.getElementById('gpsPublicStatusBox');
+      statusBox.classList.remove('hidden');
+      const parts = coord.split(',').map(s => s.trim());
+      statusBox.innerHTML = `
+        <div class="flex items-center justify-between gap-2 p-2.5 bg-blue-100/90 border border-blue-300 rounded-xl text-xs text-blue-900">
+          <div class="flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check text-blue-700 text-sm"></i>
+            <span><strong>GPS:</strong> <span class="font-mono font-bold">${coord}</span> (${wilayah})</span>
+          </div>
+          <a href="https://www.google.com/maps?q=${parts[0]},${parts[1]}" target="_blank" rel="noopener" class="text-xs font-bold text-blue-800 underline flex items-center gap-1 shrink-0">
+            <i class="fa-solid fa-map-location-dot"></i> Maps
+          </a>
+        </div>
+      `;
+      updateProgressBar();
+    }
   </script>
 </body>
 </html>

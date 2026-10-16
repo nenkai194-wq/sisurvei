@@ -113,6 +113,7 @@ def init_db():
             usia INTEGER,
             jenis_kelamin TEXT,
             pendidikan_terakhir TEXT,
+            titik_koordinat TEXT,
             alamat_wilayah TEXT,
             ip_address TEXT,
             waktu_mulai DATETIME,
@@ -122,11 +123,13 @@ def init_db():
         )
     ''')
 
-    # Migration check untuk pendidikan_terakhir jika tabel responden sudah ada
+    # Migration check untuk pendidikan_terakhir dan titik_koordinat jika tabel responden sudah ada
     cursor.execute("PRAGMA table_info(responden)")
     resp_cols = [r[1] for r in cursor.fetchall()]
     if 'pendidikan_terakhir' not in resp_cols:
         cursor.execute("ALTER TABLE responden ADD COLUMN pendidikan_terakhir TEXT")
+    if 'titik_koordinat' not in resp_cols:
+        cursor.execute("ALTER TABLE responden ADD COLUMN titik_koordinat TEXT")
     
     # 6. Tabel Jawaban
     cursor.execute('''

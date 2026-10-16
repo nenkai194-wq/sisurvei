@@ -154,16 +154,58 @@
           </select>
         </div>
 
-        <!-- Wilayah Wawancara -->
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Wilayah / Alamat Wawancara</label>
-          <input 
-            type="text" 
-            name="alamat_wilayah" 
-            value="{{ current_operator.wilayah or '' }}" 
-            placeholder="Contoh: RT 02 RW 04 Kelurahan..." 
-            class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-          >
+        <!-- Titik Koordinat GPS & Lokasi Wawancara -->
+        <div class="sm:col-span-2 p-3.5 sm:p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/90 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <label class="block text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                <i class="fa-solid fa-location-dot text-emerald-600 mr-1.5"></i>Titik Koordinat Lokasi Wawancara (GPS)
+              </label>
+              <p class="text-[11px] text-emerald-800/80">Ambil titik koordinat akurat langsung dari sensor GPS HP Android Anda</p>
+            </div>
+            <!-- Tombol Deteksi GPS HP Android -->
+            <button 
+              type="button" 
+              onclick="ambilKoordinatGPS()" 
+              id="btnGetGPS"
+              class="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 active:bg-emerald-700 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center justify-center gap-2 shadow-xs transition shrink-0"
+            >
+              <i class="fa-solid fa-location-crosshairs text-base" id="iconGPS"></i>
+              <span id="labelGPS">Kunci Titik GPS HP</span>
+            </button>
+          </div>
+
+          <!-- Input Koordinat (Latitude, Longitude) -->
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i class="fa-solid fa-satellite-dish text-xs text-emerald-600"></i>
+            </div>
+            <input 
+              type="text" 
+              name="titik_koordinat" 
+              id="titik_koordinat_input" 
+              placeholder="-6.175392, 106.827153 (Latitude, Longitude)" 
+              class="w-full pl-9 pr-3.5 py-2.5 text-base sm:text-sm font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
+            >
+          </div>
+
+          <!-- Status Box & Quick Actions -->
+          <div id="gpsStatusBox" class="hidden"></div>
+
+          <!-- Catatan Wilayah / Alamat Wawancara -->
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">
+              Catatan Wilayah / Alamat Wawancara (Opsional)
+            </label>
+            <input 
+              type="text" 
+              name="alamat_wilayah" 
+              id="alamat_wilayah_input" 
+              value="{{ current_operator.wilayah or '' }}" 
+              placeholder="Contoh: RT 02 RW 04 Kelurahan Menteng (Jakarta Pusat & Barat)" 
+              class="w-full px-3.5 py-2 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white"
+            >
+          </div>
         </div>
       </div>
     </div>
@@ -403,5 +445,104 @@
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan Sampel...';
     btn.classList.add('opacity-80', 'cursor-not-allowed');
   });
+
+  // Fitur Deteksi Titik Koordinat GPS Khusus Perangkat Android / Mobile
+  function ambilKoordinatGPS() {
+    const btn = document.getElementById('btnGetGPS');
+    const label = document.getElementById('labelGPS');
+    const icon = document.getElementById('iconGPS');
+    const coordInput = document.getElementById('titik_koordinat_input');
+    const statusBox = document.getElementById('gpsStatusBox');
+
+    if (!navigator.geolocation) {
+      alert('Browser atau perangkat Android Anda belum mendukung akses sensor GPS Geolocation.');
+      return;
+    }
+
+    btn.disabled = true;
+    label.innerText = 'Mengunci Satelit GPS HP...';
+    icon.className = 'fa-solid fa-spinner fa-spin text-base';
+
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        const lat = position.coords.latitude.toFixed(6);
+        const lng = position.coords.longitude.toFixed(6);
+        const acc = Math.round(position.coords.accuracy);
+        
+        const coordStr = `${lat}, ${lng}`;
+        coordInput.value = coordStr;
+
+        btn.disabled = false;
+        label.innerText = 'Perbarui Titik GPS';
+        icon.className = 'fa-solid fa-location-crosshairs text-base text-emerald-200';
+        
+        statusBox.classList.remove('hidden');
+        statusBox.innerHTML = `
+          <div class="flex items-center justify-between gap-2 p-2.5 bg-emerald-100/90 border border-emerald-300 rounded-xl text-xs text-emerald-900 shadow-xs">
+            <div class="flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check text-emerald-700 text-sm"></i>
+              <span><strong>GPS Terkunci:</strong> <span class="font-mono font-bold">${coordStr}</span> <span class="text-[10px] text-emerald-800 bg-emerald-200/80 px-1.5 py-0.5 rounded font-mono">±${acc}m</span></span>
+            </div>
+            <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener" class="text-xs font-bold text-emerald-800 hover:text-emerald-950 underline flex items-center gap-1 shrink-0">
+              <i class="fa-solid fa-map-location-dot"></i> Maps
+            </a>
+          </div>
+        `;
+      },
+      function(error) {
+        btn.disabled = false;
+        label.innerText = 'Kunci Titik GPS HP';
+        icon.className = 'fa-solid fa-location-crosshairs text-base';
+        
+        let errMsg = 'Gagal mendeteksi lokasi GPS.';
+        if (error.code === error.PERMISSION_DENIED) {
+          errMsg = 'Izin akses lokasi ditolak di browser HP. Mohon klik icon gembok di URL Chrome dan izinkan akses lokasi GPS.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errMsg = 'Sinyal satelit GPS tidak terdeteksi. Gunakan pilihan titik simulasi cepat di bawah atau ketik koordinat manual.';
+        } else if (error.code === error.TIMEOUT) {
+          errMsg = 'Waktu pencarian sinyal GPS habis. Coba ketuk tombol kunci GPS sekali lagi.';
+        }
+        
+        statusBox.classList.remove('hidden');
+        statusBox.innerHTML = `
+          <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1.5">
+            <div class="flex items-start gap-1.5">
+              <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
+              <span>${errMsg}</span>
+            </div>
+            <div class="pt-1 border-t border-amber-200/60 flex flex-wrap gap-2 text-[11px]">
+              <span class="text-slate-500 font-semibold">Gunakan Titik Cepat:</span>
+              <button type="button" onclick="setDemoCoord('-6.175392, 106.827153', 'Jakarta Pusat (Monas)')" class="font-bold text-emerald-700 hover:underline">📍 Jakarta Pusat</button>
+              <button type="button" onclick="setDemoCoord('-6.168329, 106.758849', 'Jakarta Barat (Puri Indah)')" class="font-bold text-emerald-700 hover:underline">📍 Jakarta Barat</button>
+              <button type="button" onclick="setDemoCoord('-6.208763, 106.845599', 'Jakarta Selatan (Kuningan)')" class="font-bold text-emerald-700 hover:underline">📍 Jakarta Selatan</button>
+            </div>
+          </div>
+        `;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 0
+      }
+    );
+  }
+
+  function setDemoCoord(coord, wilayah) {
+    document.getElementById('titik_koordinat_input').value = coord;
+    const statusBox = document.getElementById('gpsStatusBox');
+    statusBox.classList.remove('hidden');
+    const parts = coord.split(',').map(s => s.trim());
+    statusBox.innerHTML = `
+      <div class="flex items-center justify-between gap-2 p-2.5 bg-emerald-100/90 border border-emerald-300 rounded-xl text-xs text-emerald-900">
+        <div class="flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-check text-emerald-700 text-sm"></i>
+          <span><strong>Titik Disetel:</strong> <span class="font-mono font-bold">${coord}</span> <span class="text-[10px] text-emerald-800 font-medium">(${wilayah})</span></span>
+        </div>
+        <a href="https://www.google.com/maps?q=${parts[0]},${parts[1]}" target="_blank" rel="noopener" class="text-xs font-bold text-emerald-800 underline flex items-center gap-1 shrink-0">
+          <i class="fa-solid fa-map-location-dot"></i> Maps
+        </a>
+      </div>
+    `;
+  }
 </script>
 {% endblock %}

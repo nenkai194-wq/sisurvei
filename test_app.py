@@ -62,6 +62,7 @@ def run_tests():
         'usia': '29',
         'jenis_kelamin': 'Laki-laki',
         'pendidikan_terakhir': 'Sarjana (S1)',
+        'titik_koordinat': '-6.175392, 106.827153',
         'alamat_wilayah': 'Jakarta Pusat',
         'petugas_id': str(p_id),
     }
@@ -86,11 +87,12 @@ def run_tests():
     assert b"Terima Kasih" in res.data
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT pendidikan_terakhir FROM responden WHERE nama_responden = 'Responden Tester Publik' ORDER BY id DESC LIMIT 1")
+    c.execute("SELECT pendidikan_terakhir, titik_koordinat FROM responden WHERE nama_responden = 'Responden Tester Publik' ORDER BY id DESC LIMIT 1")
     row_p = c.fetchone()
     conn.close()
     assert row_p and row_p[0] == 'Sarjana (S1)', f"Expected 'Sarjana (S1)', got {row_p}"
-    print("    -> Passed! Public respondent response submitted and pendidikan_terakhir persisted correctly.")
+    assert row_p[1] == '-6.175392, 106.827153', f"Expected '-6.175392, 106.827153', got {row_p[1]}"
+    print("    -> Passed! Public respondent response submitted, pendidikan_terakhir and titik_koordinat persisted correctly.")
 
     print("\n--- PHASE 2: TESTING AUTHENTICATION (ADMIN & OPERATOR) ---")
 
@@ -231,6 +233,7 @@ def run_tests():
         'usia': '35',
         'jenis_kelamin': 'Perempuan',
         'pendidikan_terakhir': 'Diploma (D1 - D4)',
+        'titik_koordinat': '-6.208763, 106.845599',
         'alamat_wilayah': 'Kelurahan Menteng RT 05',
     }
     for q_idx, qid in enumerate(pertanyaan_ids):
@@ -256,12 +259,13 @@ def run_tests():
     
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT id, pendidikan_terakhir FROM responden WHERE nama_responden = 'Warga Uji Coba Enumerator #99' ORDER BY id DESC LIMIT 1")
+    c.execute("SELECT id, pendidikan_terakhir, titik_koordinat FROM responden WHERE nama_responden = 'Warga Uji Coba Enumerator #99' ORDER BY id DESC LIMIT 1")
     op_row = c.fetchone()
     conn.close()
     assert op_row and op_row[1] == 'Diploma (D1 - D4)', f"Expected 'Diploma (D1 - D4)', got {op_row}"
+    assert op_row[2] == '-6.208763, 106.845599', f"Expected '-6.208763, 106.845599', got {op_row[2]}"
     new_resp_id = op_row[0]
-    print("    -> Passed! Operator survey sample saved with pendidikan_terakhir.")
+    print("    -> Passed! Operator survey sample saved with pendidikan_terakhir and titik_koordinat.")
 
     print(f"[27] Testing GET /api/responden/{new_resp_id}/detail as Authenticated Operator...")
     res = client.get(f'/api/responden/{new_resp_id}/detail')
@@ -269,7 +273,8 @@ def run_tests():
     detail_data = json.loads(res.data)
     assert detail_data['success'] is True
     assert detail_data['responden']['pendidikan_terakhir'] == 'Diploma (D1 - D4)'
-    print("    -> Passed! Operator can fetch respondent detail modal data and pendidikan_terakhir is verified.")
+    assert detail_data['responden']['titik_koordinat'] == '-6.208763, 106.845599'
+    print("    -> Passed! Operator can fetch respondent detail modal data; pendidikan_terakhir and titik_koordinat verified.")
 
     print("\n=======================================================")
     print(" ALL 27 AUTOMATED INTEGRATION TESTS PASSED 100%! ")

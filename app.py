@@ -2,6 +2,7 @@ import os
 import io
 import json
 import csv
+import socket
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import (
@@ -14,6 +15,17 @@ from database import get_db, init_db
 
 app = Flask(__name__)
 app.secret_key = 'sisurvei-super-secret-key-production-2026'
+
+def get_local_ip():
+    """Mendeteksi IP LAN / Wi-Fi agar bisa langsung diakses dari perangkat HP Android di jaringan lokal"""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return '192.168.200.9'
 
 # Konfigurasi Upload Foto Petugas
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'petugas')
@@ -75,6 +87,17 @@ def inject_auth_user():
             'nip': session.get('nip'),
             'username': session.get('username')
         }
+    }
+
+# Context processor untuk alamat akses HP Android dan jaringan lokal
+@app.context_processor
+def inject_mobile_info():
+    local_ip = get_local_ip()
+    port = int(os.environ.get('PORT', 5005))
+    return {
+        'local_ip': local_ip,
+        'mobile_url': f"http://{local_ip}:{port}",
+        'server_port': port
     }
 
 # ==========================================
@@ -706,7 +729,10 @@ def survei_isi(kode_survei):
                 usia = None
         jenis_kelamin = request.form.get('jenis_kelamin', 'Rahasia')
         pendidikan_terakhir = request.form.get('pendidikan_terakhir', '').strip() or None
+        titik_koordinat = request.form.get('titik_koordinat', '').strip() or None
         alamat_wilayah = request.form.get('alamat_wilayah', '').strip()
+        if not alamat_wilayah and titik_koordinat:
+            alamat_wilayah = f"Koordinat: {titik_koordinat}"
         
         # Petugas penginput
         petugas_id = request.form.get('petugas_id')
@@ -715,9 +741,9 @@ def survei_isi(kode_survei):
         ip_addr = request.remote_addr or '127.0.0.1'
         
         cursor.execute('''
-            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, alamat_wilayah, ip_address, waktu_selesai)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (survei['id'], petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, alamat_wilayah, ip_addr))
+            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, titik_koordinat, alamat_wilayah, ip_address, waktu_selesai)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (survei['id'], petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, titik_koordinat, alamat_wilayah, ip_addr))
         responden_id = cursor.lastrowid
         
         # Simpan setiap jawaban
@@ -1065,7 +1091,7 @@ def survei_export_excel(id):
     ws["A2"].font = Font(size=10, italic=True, color="4B5563")
     
     # Headers baris 4
-    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "No HP/Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Wilayah / Alamat", "Petugas Penginput"]
+    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "No HP/Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Titik Koordinat (GPS)", "Wilayah / Alamat", "Petugas Penginput"]
     for q in pertanyaan_list:
         headers.append(f"Q{q['urutan']}: {q['teks_pertanyaan']}")
         
@@ -1089,6 +1115,7 @@ def survei_export_excel(id):
             r['usia'] if r['usia'] else '-',
             r['jenis_kelamin'] or '-',
             r['pendidikan_terakhir'] or '-',
+            r['titik_koordinat'] or '-',
             r['alamat_wilayah'] or '-',
             r['nama_petugas'] or 'Mandiri (Publik)'
         ]
@@ -1169,7 +1196,7 @@ def survei_export_csv(id):
     out_stream = io.StringIO()
     writer = csv.writer(out_stream)
     
-    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Wilayah", "Petugas Penginput"]
+    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Titik Koordinat (GPS)", "Wilayah", "Petugas Penginput"]
     for q in pertanyaan_list:
         headers.append(f"Q{q['urutan']}: {q['teks_pertanyaan']}")
     writer.writerow(headers)
@@ -1184,6 +1211,7 @@ def survei_export_csv(id):
             r['usia'] or '',
             r['jenis_kelamin'] or '',
             r['pendidikan_terakhir'] or '',
+            r['titik_koordinat'] or '',
             r['alamat_wilayah'] or '',
             r['nama_petugas'] or 'Mandiri'
         ]
@@ -1648,12 +1676,15 @@ def operator_survei_isi(survei_id):
         usia = int(usia) if usia and usia.isdigit() else None
         jenis_kelamin = request.form.get('jenis_kelamin', 'Rahasia')
         pendidikan_terakhir = request.form.get('pendidikan_terakhir', '').strip() or None
+        titik_koordinat = request.form.get('titik_koordinat', '').strip() or None
         alamat_wilayah = request.form.get('alamat_wilayah', '').strip()
+        if not alamat_wilayah and titik_koordinat:
+            alamat_wilayah = f"Koordinat: {titik_koordinat}"
         
         cursor.execute('''
-            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, alamat_wilayah, ip_address, waktu_selesai)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (survei_id, current_op['id'], nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, alamat_wilayah, request.remote_addr or '127.0.0.1'))
+            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, titik_koordinat, alamat_wilayah, ip_address, waktu_selesai)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (survei_id, current_op['id'], nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, titik_koordinat, alamat_wilayah, request.remote_addr or '127.0.0.1'))
         resp_id = cursor.lastrowid
         
         for q in questions:
