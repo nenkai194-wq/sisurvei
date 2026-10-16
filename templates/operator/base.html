@@ -92,15 +92,23 @@
           </div>
         </div>
 
-        <!-- Tombol Ganti Petugas / Switch Account -->
-        <button onclick="document.getElementById('modalSwitchPetugas').classList.remove('hidden')" class="p-2 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="Ganti Akun Petugas">
+        <!-- Tombol Ganti Petugas / Switch Account (Hanya jika Admin) -->
+        {% if session.get('user_role') == 'admin' %}
+        <button onclick="document.getElementById('modalSwitchPetugas').classList.remove('hidden')" class="p-2 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="Ganti Akun Petugas (Mode Admin)">
           <i class="fa-solid fa-users text-sm"></i>
         </button>
 
         <!-- Tombol Beralih ke Admin -->
-        <a href="{{ url_for('dashboard') }}" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="Beralih ke Panel Administrator">
+        <a href="{{ url_for('dashboard') }}" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="Kembali ke Panel Administrator">
           <i class="fa-solid fa-shield-halved text-[11px] text-blue-600"></i>
           <span>Admin</span>
+        </a>
+        {% endif %}
+
+        <!-- Tombol Logout Petugas -->
+        <a href="{{ url_for('logout') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition border border-rose-200" title="Keluar dari Akun">
+          <i class="fa-solid fa-right-from-bracket text-xs"></i>
+          <span class="hidden sm:inline">Keluar</span>
         </a>
 
       </div>
@@ -119,9 +127,16 @@
         <span class="text-[10px]">Tugas Survei</span>
       </a>
 
-      <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center gap-0.5 text-xs font-semibold text-slate-400">
+      {% if session.get('user_role') == 'admin' %}
+      <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center gap-0.5 text-xs font-semibold text-blue-600">
         <i class="fa-solid fa-shield-halved text-base"></i>
         <span class="text-[10px]">Portal Admin</span>
+      </a>
+      {% endif %}
+
+      <a href="{{ url_for('logout') }}" class="flex flex-col items-center gap-0.5 text-xs font-semibold text-rose-500">
+        <i class="fa-solid fa-right-from-bracket text-base"></i>
+        <span class="text-[10px]">Keluar</span>
       </a>
     </div>
   </header>

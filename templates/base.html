@@ -133,17 +133,22 @@
 
       <!-- User / System Info Footer -->
       <div class="p-4 border-t border-slate-800 bg-slate-950/60">
-        <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-slate-700 to-slate-600 flex items-center justify-center text-white font-semibold text-xs border border-slate-600">
-            ADM
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3 overflow-hidden">
+            <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-500/20">
+              {{ (session.get('user_name', 'Admin') or 'A')[0]|upper }}
+            </div>
+            <div class="overflow-hidden">
+              <p class="text-xs font-bold text-white truncate">{{ session.get('user_name', 'Administrator Utama') }}</p>
+              <p class="text-[10px] text-blue-400 font-medium truncate flex items-center gap-1">
+                <i class="fa-solid fa-shield-halved text-[9px]"></i>
+                <span>Admin Sistem</span>
+              </p>
+            </div>
           </div>
-          <div class="overflow-hidden">
-            <p class="text-xs font-semibold text-white truncate">Administrator Survei</p>
-            <p class="text-[11px] text-emerald-400 flex items-center gap-1.5 font-medium">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              Sistem Online
-            </p>
-          </div>
+          <a href="{{ url_for('logout') }}" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 rounded-lg transition" title="Keluar / Logout">
+            <i class="fa-solid fa-right-from-bracket text-sm"></i>
+          </a>
         </div>
       </div>
     </aside>
@@ -177,9 +182,15 @@
           <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
           <!-- Public Live Preview Link dropdown/button -->
-          <a href="{{ url_for('survei_index') }}" class="inline-flex items-center space-x-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+          <a href="{{ url_for('survei_index') }}" class="hidden md:inline-flex items-center space-x-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <span class="hidden sm:inline">Jelajahi Survei</span>
+            <span>Jelajahi Survei</span>
+          </a>
+
+          <!-- Logout Button Top Navbar -->
+          <a href="{{ url_for('logout') }}" class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition border border-rose-200" title="Keluar dari Akun Admin">
+            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            <span class="hidden sm:inline">Keluar</span>
           </a>
         </div>
       </header>

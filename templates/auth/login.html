@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-900">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Masuk ke Akun - SiSurvei Portal</title>
+  
+  <!-- Google Fonts & Tailwind CSS CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .bg-grid-pattern {
+      background-size: 40px 40px;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950 bg-grid-pattern relative">
+
+  <!-- Ambient Glow Background Effects -->
+  <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute bottom-10 right-1/4 w-80 h-80 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+    <!-- Brand Logo & Header -->
+    <div class="text-center">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-xl shadow-blue-500/30 text-white mb-3">
+        <i class="fa-solid fa-square-poll-vertical text-2xl"></i>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+        Si<span class="text-blue-400">Survei</span>
+      </h1>
+      <p class="mt-1 text-xs sm:text-sm text-slate-400">
+        Portal Masuk Pengelolaan Survei & Enumerator Lapangan
+      </p>
+    </div>
+  </div>
+
+  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0 relative z-10">
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-5 space-y-2">
+          {% for category, message in messages %}
+            <div class="flex items-start gap-3 p-3.5 rounded-xl text-xs sm:text-sm border backdrop-blur-md {% if category == 'success' %}bg-emerald-950/80 text-emerald-300 border-emerald-500/40{% elif category == 'danger' %}bg-rose-950/80 text-rose-300 border-rose-500/40{% elif category == 'warning' %}bg-amber-950/80 text-amber-300 border-amber-500/40{% else %}bg-blue-950/80 text-blue-300 border-blue-500/40{% endif %} shadow-lg">
+              <i class="fa-solid {% if category == 'success' %}fa-circle-check text-emerald-400{% elif category == 'danger' %}fa-circle-exclamation text-rose-400{% else %}fa-circle-info text-blue-400{% endif %} mt-0.5 shrink-0"></i>
+              <div class="flex-1">{{ message }}</div>
+              <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white shrink-0">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Card Login -->
+    <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60">
+      
+      <!-- ROLE SELECTOR TABS -->
+      <div class="mb-6">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Pilih Level Akses Anda:</label>
+        <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/80 rounded-2xl border border-slate-800/80">
+          
+          <!-- Tab 1: Operator Lapangan -->
+          <button type="button" id="tabOperatorBtn" onclick="switchRole('operator')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-white bg-emerald-600 shadow-md shadow-emerald-600/30">
+            <i class="fa-solid fa-clipboard-user text-sm"></i>
+            <span>Petugas / Enumerator</span>
+          </button>
+          
+          <!-- Tab 2: Administrator -->
+          <button type="button" id="tabAdminBtn" onclick="switchRole('admin')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-slate-400 hover:text-slate-200">
+            <i class="fa-solid fa-shield-halved text-sm"></i>
+            <span>Administrator</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- FORM LOGIN -->
+      <form id="loginForm" action="{{ url_for('login') }}" method="POST" class="space-y-4">
+        <!-- Hidden input role ('operator' or 'admin') -->
+        <input type="hidden" name="role" id="roleInput" value="operator">
+        <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+
+        <!-- Role Badge Indicator -->
+        <div id="roleBadgeContainer" class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="roleBadgeText" class="font-semibold">Masuk sebagai Petugas Enumerator</span>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-200 border border-emerald-700/50" id="roleBadgeSub">Gunakan NIP</span>
+        </div>
+
+        <!-- Identifier Input: NIP (for Operator) or Username (for Admin) -->
+        <div>
+          <label for="identifierInput" id="identifierLabel" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+            NIP Petugas Lapangan <span class="text-emerald-400">*</span>
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i id="identifierIcon" class="fa-solid fa-id-badge text-sm"></i>
+            </div>
+            <input 
+              type="text" 
+              name="identifier" 
+              id="identifierInput" 
+              required 
+              autofocus 
+              placeholder="Contoh: PTG-001" 
+              class="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition font-mono tracking-wide"
+            >
+          </div>
+          <p id="identifierHint" class="mt-1 text-[11px] text-slate-400">Masukkan Nomor Induk Petugas Anda (Contoh: PTG-001)</p>
+        </div>
+
+        <!-- Password Input -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="passwordInput" class="block text-xs font-bold uppercase tracking-wider text-slate-300">
+              Kata Sandi <span class="text-rose-400">*</span>
+            </label>
+          </div>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i class="fa-solid fa-lock text-sm"></i>
+            </div>
+            <input 
+              type="password" 
+              name="password" 
+              id="passwordInput" 
+              required 
+              placeholder="••••••••" 
+              class="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
+            >
+            <button 
+              type="button" 
+              onclick="togglePasswordVisibility()" 
+              class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition"
+              title="Lihat sandi"
+            >
+              <i id="eyeIcon" class="fa-solid fa-eye text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-2">
+          <button 
+            type="submit" 
+            id="submitBtn" 
+            class="w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 group cursor-pointer"
+          >
+            <span>Masuk Sekarang</span>
+            <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- 1-CLICK DEMO LOGIN FILL SECTION -->
+      <div class="mt-6 pt-5 border-t border-slate-800">
+        <div class="flex items-center justify-between mb-2.5">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-400"></i>
+            1-Click Demo Login
+          </span>
+          <span class="text-[10px] text-slate-500">Klik untuk langsung isi form</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <!-- Demo Petugas 1 -->
+          <button 
+            type="button" 
+            onclick="fillDemo('operator', 'PTG-001', 'password123')" 
+            class="p-2.5 text-left rounded-xl bg-slate-950/60 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-600/50 transition group"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-200 group-hover:text-emerald-300">Budi Santoso</span>
+              <span class="text-[10px] font-mono bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded">PTG-001</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+              <i class="fa-solid fa-clipboard-user text-emerald-400"></i>
+              <span>Petugas Enumerator</span>
+            </div>
+          </button>
+
+          <!-- Demo Petugas 2 -->
+          <button 
+            type="button" 
+            onclick="fillDemo('operator', 'PTG-002', 'password123')" 
+            class="p-2.5 text-left rounded-xl bg-slate-950/60 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-600/50 transition group"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-200 group-hover:text-emerald-300">Siti Aminah</span>
+              <span class="text-[10px] font-mono bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded">PTG-002</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+              <i class="fa-solid fa-clipboard-user text-emerald-400"></i>
+              <span>Petugas Enumerator</span>
+            </div>
+          </button>
+
+          <!-- Demo Petugas 3 -->
+          <button 
+            type="button" 
+            onclick="fillDemo('operator', 'PTG-003', 'password123')" 
+            class="p-2.5 text-left rounded-xl bg-slate-950/60 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-600/50 transition group"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-200 group-hover:text-emerald-300">Ahmad Fauzi</span>
+              <span class="text-[10px] font-mono bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded">PTG-003</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+              <i class="fa-solid fa-clipboard-user text-emerald-400"></i>
+              <span>Petugas Enumerator</span>
+            </div>
+          </button>
+
+          <!-- Demo Admin -->
+          <button 
+            type="button" 
+            onclick="fillDemo('admin', 'admin', 'admin123')" 
+            class="p-2.5 text-left rounded-xl bg-slate-950/60 hover:bg-blue-950/40 border border-slate-800 hover:border-blue-600/50 transition group"
+          >
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-200 group-hover:text-blue-300">Admin Utama</span>
+              <span class="text-[10px] font-mono bg-blue-900/60 text-blue-300 px-1.5 py-0.5 rounded">admin</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+              <i class="fa-solid fa-shield-halved text-blue-400"></i>
+              <span>Administrator</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Direct Respondent Questionnaire Link -->
+    <div class="mt-6 text-center">
+      <div class="inline-flex items-center gap-2 p-1.5 px-4 rounded-full bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
+        <i class="fa-solid fa-link text-blue-400"></i>
+        <span>Punya tautan kode survei publik?</span>
+        <a href="{{ url_for('survei_isi', kode_survei='SRV-2026-001') }}" class="font-bold text-blue-400 hover:text-blue-300 hover:underline">
+          Isi Form Survei
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer Copyright -->
+    <p class="mt-8 text-center text-xs text-slate-500">
+      &copy; 2026 <strong class="text-slate-400">SiSurvei</strong>. Sistem Informasi & Manajemen Survei Terpadu.
+    </p>
+
+  </div>
+
+  <!-- JavaScript for Tabs & Demo Fill -->
+  <script>
+    function switchRole(role) {
+      const roleInput = document.getElementById('roleInput');
+      const tabOperatorBtn = document.getElementById('tabOperatorBtn');
+      const tabAdminBtn = document.getElementById('tabAdminBtn');
+      const badgeBox = document.getElementById('roleBadgeContainer');
+      const badgeText = document.getElementById('roleBadgeText');
+      const badgeSub = document.getElementById('roleBadgeSub');
+      const label = document.getElementById('identifierLabel');
+      const icon = document.getElementById('identifierIcon');
+      const input = document.getElementById('identifierInput');
+      const hint = document.getElementById('identifierHint');
+      const submitBtn = document.getElementById('submitBtn');
+
+      roleInput.value = role;
+
+      if (role === 'admin') {
+        // Active Admin Tab style
+        tabAdminBtn.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-white bg-blue-600 shadow-md shadow-blue-600/30";
+        tabOperatorBtn.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-slate-400 hover:text-slate-200";
+
+        // Badge Admin
+        badgeBox.className = "flex items-center justify-between p-2.5 rounded-xl bg-blue-950/50 border border-blue-500/30 text-blue-300 text-xs";
+        badgeText.textContent = "Masuk sebagai Administrator Sistem";
+        badgeSub.textContent = "Username / Email";
+        badgeSub.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-blue-900/60 text-blue-200 border border-blue-700/50";
+
+        // Input Fields
+        label.innerHTML = 'Username / Email Administrator <span class="text-blue-400">*</span>';
+        icon.className = "fa-solid fa-user-shield text-sm";
+        input.placeholder = "admin atau admin@survei.go.id";
+        input.className = "w-full pl-10 pr-4 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition font-sans";
+        hint.textContent = "Masukkan username admin (contoh: admin)";
+
+        // Submit Button
+        submitBtn.className = "w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 group cursor-pointer";
+      } else {
+        // Active Operator Tab style
+        tabOperatorBtn.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-white bg-emerald-600 shadow-md shadow-emerald-600/30";
+        tabAdminBtn.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-slate-400 hover:text-slate-200";
+
+        // Badge Operator
+        badgeBox.className = "flex items-center justify-between p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs";
+        badgeText.textContent = "Masuk sebagai Petugas Enumerator";
+        badgeSub.textContent = "Gunakan NIP";
+        badgeSub.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-200 border border-emerald-700/50";
+
+        // Input Fields
+        label.innerHTML = 'NIP Petugas Lapangan <span class="text-emerald-400">*</span>';
+        icon.className = "fa-solid fa-id-badge text-sm";
+        input.placeholder = "Contoh: PTG-001";
+        input.className = "w-full pl-10 pr-4 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition font-mono tracking-wide";
+        hint.textContent = "Masukkan Nomor Induk Petugas Anda (Contoh: PTG-001)";
+
+        // Submit Button
+        submitBtn.className = "w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 group cursor-pointer";
+      }
+      input.focus();
+    }
+
+    function togglePasswordVisibility() {
+      const pwd = document.getElementById('passwordInput');
+      const eye = document.getElementById('eyeIcon');
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+        eye.className = 'fa-solid fa-eye-slash text-sm';
+      } else {
+        pwd.type = 'password';
+        eye.className = 'fa-solid fa-eye text-sm';
+      }
+    }
+
+    function fillDemo(role, identifier, password) {
+      switchRole(role);
+      document.getElementById('identifierInput').value = identifier;
+      document.getElementById('passwordInput').value = password;
+      
+      // Visual feedback blink
+      const form = document.getElementById('loginForm');
+      form.classList.add('ring-2', role === 'admin' ? 'ring-blue-500' : 'ring-emerald-500');
+      setTimeout(() => {
+        form.classList.remove('ring-2', 'ring-blue-500', 'ring-emerald-500');
+      }, 400);
+    }
+  </script>
+</body>
+</html>

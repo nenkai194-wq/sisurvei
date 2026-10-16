@@ -3,11 +3,13 @@ import io
 import json
 import csv
 from datetime import datetime, timedelta
+from functools import wraps
 from flask import (
     Flask, render_template, request, redirect, url_for, 
     flash, jsonify, send_file, abort, session
 )
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash, generate_password_hash
 from database import get_db, init_db
 
 app = Flask(__name__)
@@ -48,11 +50,146 @@ def get_current_operator():
                 break
                 
     if not current_op and all_active:
-        current_op = all_active[0]
-        session['operator_id'] = current_op['id']
-        
+        if session.get('user_role') == 'admin':
+            current_op = all_active[0]
+            session['operator_id'] = current_op['id']
+        elif session.get('user_role') == 'operator':
+            uid = session.get('user_id')
+            for p in all_active:
+                if p['id'] == uid:
+                    current_op = p
+                    session['operator_id'] = p['id']
+                    break
+                    
     conn.close()
     return current_op, all_active
+
+# Context processor untuk informasi pengguna yang sedang login
+@app.context_processor
+def inject_auth_user():
+    return {
+        'logged_user': {
+            'role': session.get('user_role'),
+            'id': session.get('user_id'),
+            'name': session.get('user_name'),
+            'nip': session.get('nip'),
+            'username': session.get('username')
+        }
+    }
+
+# ==========================================
+# SISTEM OTENTIKASI & KONTROL AKSES (AUTH)
+# ==========================================
+@app.before_request
+def check_authentication():
+    # 1. Jalur statis dan assets
+    if request.path.startswith('/static') or request.path == '/favicon.ico':
+        return
+        
+    # 2. Endpoint otentikasi publik
+    if request.endpoint in ('login', 'logout'):
+        return
+        
+    # 3. Formulir pengisian survei responden publik
+    if request.endpoint in ('survei_isi', 'survei_sukses') or request.path.startswith('/s/'):
+        return
+        
+    # 4. Cek status login
+    if 'user_role' not in session:
+        flash("Silakan masuk terlebih dahulu untuk mengakses sistem SiSurvei.", "info")
+        return redirect(url_for('login', next=request.path))
+        
+    # 5. Batasan hak akses Role Operator:
+    # Petugas hanya boleh mengakses portal operator (/operator/*)
+    if session.get('user_role') == 'operator':
+        is_operator_path = (
+            request.path.startswith('/operator') or 
+            request.path.startswith('/api/responden') or
+            (request.endpoint and request.endpoint.startswith('operator_'))
+        )
+        if not is_operator_path:
+            flash("Akses ditolak: Akun Petugas Enumerator hanya memiliki akses ke Profil dan Tugas Survei.", "danger")
+            return redirect(url_for('operator_tugas'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_role' in session:
+        if session['user_role'] == 'admin':
+            return redirect(url_for('dashboard'))
+        else:
+            return redirect(url_for('operator_tugas'))
+            
+    if request.method == 'POST':
+        role = request.form.get('role', 'operator').strip()
+        identifier = request.form.get('identifier', '').strip()
+        password = request.form.get('password', '')
+        next_url = request.form.get('next', '').strip()
+        
+        if not identifier or not password:
+            flash("Mohon lengkapi NIP/Username dan Kata Sandi.", "warning")
+            return render_template('auth/login.html')
+            
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        if role == 'admin':
+            cursor.execute("SELECT * FROM users WHERE username = ? OR email = ?", (identifier, identifier))
+            user = cursor.fetchone()
+            conn.close()
+            
+            if user and check_password_hash(user['password_hash'], password):
+                session.clear()
+                session['user_role'] = 'admin'
+                session['user_id'] = user['id']
+                session['user_name'] = user['nama']
+                session['username'] = user['username']
+                session['email'] = user['email']
+                flash(f"Selamat datang kembali, {user['nama']}!", "success")
+                if next_url and next_url.startswith('/') and not next_url.startswith('/login'):
+                    return redirect(next_url)
+                return redirect(url_for('dashboard'))
+            else:
+                flash("Username/email atau kata sandi Administrator salah!", "danger")
+                return render_template('auth/login.html')
+        else:
+            # Role: operator
+            cursor.execute("SELECT * FROM petugas WHERE (nip = ? OR email = ?)", (identifier, identifier))
+            petugas = cursor.fetchone()
+            conn.close()
+            
+            if petugas:
+                if petugas['status'] != 'Aktif':
+                    flash("Akun petugas ini berstatus non-aktif. Silakan hubungi Administrator.", "danger")
+                    return render_template('auth/login.html')
+                    
+                pwd_hash = petugas['password_hash']
+                if pwd_hash and check_password_hash(pwd_hash, password):
+                    session.clear()
+                    session['user_role'] = 'operator'
+                    session['operator_id'] = petugas['id']
+                    session['user_id'] = petugas['id']
+                    session['user_name'] = petugas['nama']
+                    session['nip'] = petugas['nip']
+                    session['wilayah'] = petugas['wilayah']
+                    flash(f"Selamat datang, {petugas['nama']}! Semangat bertugas.", "success")
+                    if next_url and next_url.startswith('/operator'):
+                        return redirect(next_url)
+                    return redirect(url_for('operator_tugas'))
+                    
+            flash("NIP atau kata sandi Petugas Enumerator tidak sesuai!", "danger")
+            return render_template('auth/login.html')
+            
+    return render_template('auth/login.html')
+
+@app.route('/logout')
+def logout():
+    nama = session.get('user_name', '')
+    session.clear()
+    if nama:
+        flash(f"Sampai jumpa, {nama}. Anda telah berhasil keluar dari sistem.", "info")
+    else:
+        flash("Anda telah berhasil keluar dari sistem SiSurvei.", "info")
+    return redirect(url_for('login'))
 
 # Custom Jinja filters
 @app.template_filter('from_json')
@@ -1134,13 +1271,16 @@ def petugas_tambah():
     foto_url = request.form.get('foto_url', '').strip()
     foto = save_uploaded_photo(foto_file, nip) or (foto_url if foto_url else None)
 
+    password = request.form.get('password', '').strip() or 'password123'
+    password_hash = generate_password_hash(password)
+
     cursor.execute('''
-        INSERT INTO petugas (nip, nama, email, no_hp, wilayah, jabatan, status, foto)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (nip, nama, email, no_hp, wilayah, jabatan, status, foto))
+        INSERT INTO petugas (nip, nama, email, no_hp, wilayah, jabatan, status, foto, password_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (nip, nama, email, no_hp, wilayah, jabatan, status, foto, password_hash))
     conn.commit()
     conn.close()
-    flash(f"Petugas '{nama}' berhasil ditambahkan ke sistem!", "success")
+    flash(f"Petugas '{nama}' berhasil ditambahkan ke sistem! (Kata sandi default: {password})", "success")
     return redirect(url_for('petugas_index'))
 
 @app.route('/petugas/<int:id>/edit', methods=['POST'])
@@ -1155,6 +1295,7 @@ def petugas_edit(id):
     wilayah = request.form.get('wilayah', '').strip()
     jabatan = request.form.get('jabatan', 'Petugas Lapangan').strip()
     status = request.form.get('status', 'Aktif')
+    password = request.form.get('password', '').strip()
     
     cursor.execute("SELECT id FROM petugas WHERE nip = ? AND id != ?", (nip, id))
     if cursor.fetchone():
@@ -1178,6 +1319,10 @@ def petugas_edit(id):
             SET nip = ?, nama = ?, email = ?, no_hp = ?, wilayah = ?, jabatan = ?, status = ?
             WHERE id = ?
         ''', (nip, nama, email, no_hp, wilayah, jabatan, status, id))
+        
+    if password:
+        cursor.execute("UPDATE petugas SET password_hash = ? WHERE id = ?", (generate_password_hash(password), id))
+        
     conn.commit()
     conn.close()
     flash(f"Data petugas '{nama}' berhasil diperbarui!", "success")
@@ -1411,8 +1556,15 @@ def operator_profil():
                 WHERE id = ?
             ''', (nama, no_hp, email, wilayah, current_op['id']))
             
+        password_baru = request.form.get('password_baru', '').strip()
+        if password_baru:
+            cursor.execute("UPDATE petugas SET password_hash = ? WHERE id = ?", (generate_password_hash(password_baru), current_op['id']))
+            
         conn.commit()
         conn.close()
+        
+        # Perbarui nama di sesi jika berubah
+        session['user_name'] = nama
         flash("Profil dan foto petugas berhasil diperbarui!", "success")
         return redirect(url_for('operator_profil'))
         

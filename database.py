@@ -27,17 +27,33 @@ def init_db():
             jabatan TEXT DEFAULT 'Petugas Lapangan',
             status TEXT DEFAULT 'Aktif',
             foto TEXT,
+            password_hash TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
-    # Migration check untuk foto jika tabel sudah ada sebelumnya
+    # Migration check untuk foto dan password jika tabel sudah ada sebelumnya
     cursor.execute("PRAGMA table_info(petugas)")
     col_names = [r[1] for r in cursor.fetchall()]
     if 'foto' not in col_names:
         cursor.execute("ALTER TABLE petugas ADD COLUMN foto TEXT")
+    if 'password_hash' not in col_names:
+        cursor.execute("ALTER TABLE petugas ADD COLUMN password_hash TEXT")
     
-    # 2. Tabel Survei
+    # 2. Tabel Users (Admin)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            nama TEXT NOT NULL,
+            email TEXT,
+            role TEXT DEFAULT 'admin',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # 3. Tabel Survei
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS survei (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -117,6 +133,19 @@ def init_db():
             FOREIGN KEY (pertanyaan_id) REFERENCES pertanyaan(id) ON DELETE CASCADE
         )
     ''')
+    
+    # 7. Seed Default Admin & Password Petugas jika belum ada
+    cursor.execute("SELECT id FROM users WHERE username = 'admin'")
+    if not cursor.fetchone():
+        from werkzeug.security import generate_password_hash
+        cursor.execute('''
+            INSERT INTO users (username, password_hash, nama, email, role)
+            VALUES (?, ?, ?, ?, ?)
+        ''', ('admin', generate_password_hash('admin123'), 'Administrator Utama', 'admin@survei.go.id', 'admin'))
+
+    from werkzeug.security import generate_password_hash
+    cursor.execute("UPDATE petugas SET password_hash = ? WHERE password_hash IS NULL OR password_hash = ''",
+                   (generate_password_hash('password123'),))
     
     conn.commit()
     conn.close()
