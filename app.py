@@ -1470,6 +1470,354 @@ def petugas_tambah():
     flash(f"Petugas '{nama}' berhasil ditambahkan ke sistem! (Kata sandi default: {password})", "success")
     return redirect(url_for('petugas_index'))
 
+@app.route('/petugas/template/download')
+def petugas_template_download():
+    fmt = request.args.get('format', 'excel').lower()
+    
+    if fmt == 'csv':
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(["NIP", "Nama Lengkap", "Jabatan", "Wilayah Penugasan", "No HP / WhatsApp", "Email", "Status", "Kata Sandi"])
+        writer.writerow(["PTG-008", "Bambang Suhendra, S.Sos", "Petugas Lapangan", "Jakarta Selatan", "081234567890", "bambang@survei.go.id", "Aktif", "password123"])
+        writer.writerow(["PTG-009", "Dewi Lestari, S.Stat", "Enumerator Wilayah", "Bandung Barat", "081298765432", "dewi@survei.go.id", "Aktif", "password123"])
+        writer.writerow(["PTG-010", "Hendri Setiawan, S.T", "Koordinator Wilayah", "Surabaya Timur", "085712345678", "hendri@survei.go.id", "Aktif", "password123"])
+        
+        mem = io.BytesIO()
+        mem.write(buf.getvalue().encode('utf-8-sig'))
+        mem.seek(0)
+        return send_file(
+            mem,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name='Template_Import_Petugas_SiSurvei.csv'
+        )
+        
+    # Excel default
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Template Import Petugas"
+    ws.views.sheetView[0].showGridLines = True
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    instruction_font = Font(name="Calibri", size=10, italic=True, color="475569")
+    
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    # Petunjuk di baris 1-2
+    ws.merge_cells("A1:H1")
+    ws["A1"] = "PETUNJUK PENGISIAN TEMPLATE IMPORT DATA PETUGAS SISURVEI"
+    ws["A1"].font = Font(name="Calibri", size=12, bold=True, color="0F172A")
+    ws["A1"].alignment = Alignment(vertical="center")
+
+    ws.merge_cells("A2:H2")
+    ws["A2"] = "Kolom NIP dan Nama Lengkap wajib diisi. Kata sandi default adalah 'password123' jika dikosongkan. NIP yang sudah ada akan diperbarui otomatis."
+    ws["A2"].font = instruction_font
+    ws["A2"].alignment = Alignment(vertical="center")
+    ws.row_dimensions[1].height = 24
+    ws.row_dimensions[2].height = 20
+
+    headers = [
+        "NIP *", "Nama Lengkap *", "Jabatan", "Wilayah Penugasan", 
+        "No HP / WhatsApp", "Email", "Status (Aktif/Nonaktif)", "Kata Sandi Login"
+    ]
+    ws.row_dimensions[4].height = 28
+    for col_idx, h_text in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col_idx)
+        cell.value = h_text
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+
+    sample_rows = [
+        ["PTG-008", "Bambang Suhendra, S.Sos", "Petugas Lapangan", "Jakarta Selatan", "081234567890", "bambang@survei.go.id", "Aktif", "password123"],
+        ["PTG-009", "Dewi Lestari, S.Stat", "Enumerator Lapangan", "Bandung Barat", "081298765432", "dewi@survei.go.id", "Aktif", "password123"],
+        ["PTG-010", "Hendri Setiawan, S.T", "Koordinator Wilayah", "Surabaya Timur", "085712345678", "hendri@survei.go.id", "Aktif", "password123"],
+    ]
+
+    for r_idx, r_data in enumerate(sample_rows, start=5):
+        ws.row_dimensions[r_idx].height = 22
+        for c_idx, val in enumerate(r_data, 1):
+            cell = ws.cell(row=r_idx, column=c_idx)
+            cell.value = val
+            cell.font = Font(name="Calibri", size=10)
+            cell.alignment = Alignment(horizontal="center" if c_idx in (1, 7) else "left", vertical="center")
+            cell.border = thin_border
+
+    # Auto column width
+    for col in ws.columns:
+        max_len = 0
+        col_letter = get_column_letter(col[0].column)
+        for cell in col:
+            if cell.row >= 4 and cell.value:
+                max_len = max(max_len, len(str(cell.value)))
+        ws.column_dimensions[col_letter].width = max(max_len + 5, 16)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_file(
+        buf,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='Template_Import_Petugas_SiSurvei.xlsx'
+    )
+
+@app.route('/petugas/export/excel')
+def petugas_export_excel():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.*,
+               COUNT(DISTINCT sp.survei_id) as total_survei_assigned,
+               COUNT(DISTINCT r.id) as total_respon_diinput
+        FROM petugas p
+        LEFT JOIN survei_petugas sp ON p.id = sp.petugas_id
+        LEFT JOIN responden r ON p.id = r.petugas_id
+        GROUP BY p.id
+        ORDER BY p.status ASC, p.nama ASC
+    ''')
+    petugas_list = cursor.fetchall()
+    conn.close()
+
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Master Data Petugas"
+    ws.views.sheetView[0].showGridLines = True
+
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    ws.merge_cells("A1:J1")
+    ws["A1"] = "DATA MASTER PETUGAS & ENUMERATOR - SISURVEI"
+    ws["A1"].font = Font(name="Calibri", size=13, bold=True, color="0F172A")
+    
+    ws.merge_cells("A2:J2")
+    ws["A2"] = f"Total Petugas: {len(petugas_list)} Orang | Diekspor Pada: {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
+    ws["A2"].font = Font(name="Calibri", size=10, italic=True, color="64748B")
+
+    headers = [
+        "No", "NIP / ID", "Nama Lengkap Petugas", "Jabatan", "Wilayah Penugasan",
+        "No HP / WhatsApp", "Email", "Status", "Survei Ditugaskan", "Respon Dikumpulkan"
+    ]
+    ws.row_dimensions[4].height = 28
+    for col_idx, h_text in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col_idx)
+        cell.value = h_text
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+
+    for idx, p in enumerate(petugas_list, start=1):
+        r_num = idx + 4
+        ws.row_dimensions[r_num].height = 22
+        row_vals = [
+            idx,
+            p['nip'],
+            p['nama'],
+            p['jabatan'] or '-',
+            p['wilayah'] or '-',
+            p['no_hp'] or '-',
+            p['email'] or '-',
+            p['status'],
+            p['total_survei_assigned'],
+            p['total_respon_diinput']
+        ]
+        for c_idx, val in enumerate(row_vals, 1):
+            cell = ws.cell(row=r_num, column=c_idx)
+            cell.value = val
+            cell.font = Font(name="Calibri", size=10)
+            cell.alignment = Alignment(horizontal="center" if c_idx in (1, 2, 8, 9, 10) else "left", vertical="center")
+            cell.border = thin_border
+
+    for col in ws.columns:
+        max_len = 0
+        col_letter = get_column_letter(col[0].column)
+        for cell in col:
+            if cell.row >= 4 and cell.value:
+                max_len = max(max_len, len(str(cell.value)))
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+    log_activity("Ekspor Data Petugas", f"Admin mengekspor data seluruh petugas ({len(petugas_list)} data) ke Excel")
+    return send_file(
+        buf,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=f'Data_Petugas_SiSurvei_{timestamp_str}.xlsx'
+    )
+
+@app.route('/petugas/import', methods=['POST'])
+def petugas_import():
+    if 'import_file' not in request.files:
+        flash("Tidak ada file yang diunggah untuk import.", "danger")
+        return redirect(url_for('petugas_index'))
+
+    file = request.files['import_file']
+    if not file or file.filename == '':
+        flash("Silakan pilih file Excel (.xlsx) atau CSV yang berisi data petugas.", "warning")
+        return redirect(url_for('petugas_index'))
+
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+
+    if ext not in ('xlsx', 'csv'):
+        flash("Format file tidak didukung. Mohon gunakan file template .xlsx atau .csv.", "danger")
+        return redirect(url_for('petugas_index'))
+
+    rows_to_process = []
+    
+    try:
+        if ext == 'xlsx':
+            import openpyxl
+            wb = openpyxl.load_workbook(file, data_only=True)
+            ws = wb.active
+            
+            # Cari baris header yang mengandung kata nip
+            header_row_idx = None
+            for r_idx in range(1, min(10, ws.max_row + 1)):
+                row_vals = [str(ws.cell(row=r_idx, column=c).value or '').strip().lower() for c in range(1, ws.max_column + 1)]
+                if any('nip' in v for v in row_vals):
+                    header_row_idx = r_idx
+                    break
+            
+            if header_row_idx is None:
+                header_row_idx = 1
+                
+            for r_idx in range(header_row_idx + 1, ws.max_row + 1):
+                nip_val = str(ws.cell(row=r_idx, column=1).value or '').strip()
+                nama_val = str(ws.cell(row=r_idx, column=2).value or '').strip()
+                if not nip_val and not nama_val:
+                    continue  # lewati baris kosong
+                
+                jabatan_val = str(ws.cell(row=r_idx, column=3).value or '').strip() or 'Petugas Lapangan'
+                wilayah_val = str(ws.cell(row=r_idx, column=4).value or '').strip()
+                no_hp_val = str(ws.cell(row=r_idx, column=5).value or '').strip()
+                email_val = str(ws.cell(row=r_idx, column=6).value or '').strip()
+                status_raw = str(ws.cell(row=r_idx, column=7).value or 'Aktif').strip().capitalize()
+                pwd_val = str(ws.cell(row=r_idx, column=8).value or '').strip()
+                
+                rows_to_process.append({
+                    'nip': nip_val,
+                    'nama': nama_val,
+                    'jabatan': jabatan_val,
+                    'wilayah': wilayah_val,
+                    'no_hp': no_hp_val,
+                    'email': email_val,
+                    'status': 'Nonaktif' if status_raw == 'Nonaktif' else 'Aktif',
+                    'password': pwd_val or 'password123'
+                })
+        else: # CSV
+            stream = io.StringIO(file.stream.read().decode("utf-8-sig", errors="ignore"))
+            csv_reader = csv.reader(stream)
+            all_lines = list(csv_reader)
+            
+            header_idx = None
+            for idx, line in enumerate(all_lines[:10]):
+                if any('nip' in str(c).lower() for c in line):
+                    header_idx = idx
+                    break
+            if header_idx is None:
+                header_idx = 0
+                
+            for line in all_lines[header_idx + 1:]:
+                if not line or len(line) < 2:
+                    continue
+                nip_val = str(line[0]).strip()
+                nama_val = str(line[1]).strip()
+                if not nip_val and not nama_val:
+                    continue
+                jabatan_val = str(line[2]).strip() if len(line) > 2 else 'Petugas Lapangan'
+                wilayah_val = str(line[3]).strip() if len(line) > 3 else ''
+                no_hp_val = str(line[4]).strip() if len(line) > 4 else ''
+                email_val = str(line[5]).strip() if len(line) > 5 else ''
+                status_raw = str(line[6]).strip().capitalize() if len(line) > 6 else 'Aktif'
+                pwd_val = str(line[7]).strip() if len(line) > 7 else ''
+
+                rows_to_process.append({
+                    'nip': nip_val,
+                    'nama': nama_val,
+                    'jabatan': jabatan_val or 'Petugas Lapangan',
+                    'wilayah': wilayah_val,
+                    'no_hp': no_hp_val,
+                    'email': email_val,
+                    'status': 'Nonaktif' if status_raw == 'Nonaktif' else 'Aktif',
+                    'password': pwd_val or 'password123'
+                })
+    except Exception as e:
+        flash(f"Gagal membaca file import: {str(e)}", "danger")
+        return redirect(url_for('petugas_index'))
+
+    if not rows_to_process:
+        flash("Tidak ditemukan data petugas yang valid di dalam file yang diunggah.", "warning")
+        return redirect(url_for('petugas_index'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    total_added = 0
+    total_updated = 0
+    total_skipped = 0
+
+    for item in rows_to_process:
+        nip = item['nip']
+        nama = item['nama']
+        
+        if not nip or not nama:
+            total_skipped += 1
+            continue
+
+        cursor.execute("SELECT id FROM petugas WHERE nip = ?", (nip,))
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Update data petugas eksisting
+            cursor.execute('''
+                UPDATE petugas 
+                SET nama = ?, jabatan = ?, wilayah = ?, no_hp = ?, email = ?, status = ?
+                WHERE id = ?
+            ''', (nama, item['jabatan'], item['wilayah'], item['no_hp'], item['email'], item['status'], existing['id']))
+            total_updated += 1
+        else:
+            # Tambah petugas baru
+            pwd_hash = generate_password_hash(item['password'])
+            cursor.execute('''
+                INSERT INTO petugas (nip, nama, email, no_hp, wilayah, jabatan, status, password_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (nip, nama, item['email'], item['no_hp'], item['wilayah'], item['jabatan'], item['status'], pwd_hash))
+            total_added += 1
+
+    conn.commit()
+    conn.close()
+
+    log_activity("Import Data Petugas", f"Admin mengimpor data petugas dari file '{filename}': {total_added} baru, {total_updated} diperbarui")
+    flash(f"Proses impor selesai: {total_added} petugas baru berhasil didaftarkan, {total_updated} diperbarui, {total_skipped} baris dilewati.", "success")
+    return redirect(url_for('petugas_index'))
+
 @app.route('/petugas/<int:id>/edit', methods=['POST'])
 def petugas_edit(id):
     conn = get_db()

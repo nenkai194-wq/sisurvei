@@ -493,8 +493,79 @@ def run_tests():
     assert b"Akses penghapusan file tidak sah" in res_del_trav.data
     print("    -> Passed! Path traversal and unauthorized file access blocked by directory containment shield.")
 
+    print("\n--- PHASE 10: TESTING PETUGAS BULK IMPORT & TEMPLATE EXPORT ---")
+
+    print("[45] Testing GET /petugas/template/download (Excel & CSV formats)...")
+    res_tpl_xlsx = client.get('/petugas/template/download?format=excel')
+    assert res_tpl_xlsx.status_code == 200
+    assert 'spreadsheetml' in res_tpl_xlsx.headers.get('Content-Type', '')
+    assert 'Template_Import_Petugas_SiSurvei.xlsx' in res_tpl_xlsx.headers.get('Content-Disposition', '')
+    import openpyxl, io
+    wb_tpl = openpyxl.load_workbook(io.BytesIO(res_tpl_xlsx.data))
+    assert 'Template Import Petugas' in wb_tpl.sheetnames
+
+    res_tpl_csv = client.get('/petugas/template/download?format=csv')
+    assert res_tpl_csv.status_code == 200
+    assert 'text/csv' in res_tpl_csv.headers.get('Content-Type', '')
+    assert b"NIP" in res_tpl_csv.data
+    assert b"Nama Lengkap" in res_tpl_csv.data
+    print("    -> Passed! Both Excel (.xlsx) and CSV template generators verified.")
+
+    print("[46] Testing GET /petugas/export/excel...")
+    res_exp = client.get('/petugas/export/excel')
+    assert res_exp.status_code == 200
+    assert 'spreadsheetml' in res_exp.headers.get('Content-Type', '')
+    wb_exp = openpyxl.load_workbook(io.BytesIO(res_exp.data))
+    assert 'Master Data Petugas' in wb_exp.sheetnames
+    ws_exp = wb_exp['Master Data Petugas']
+    assert ws_exp['A1'].value == "DATA MASTER PETUGAS & ENUMERATOR - SISURVEI"
+    print("    -> Passed! Master officer dataset exported to Excel.")
+
+    print("[47] Testing POST /petugas/import (Bulk Import Batch Processing)...")
+    csv_content = (
+        "NIP,Nama Lengkap,Jabatan,Wilayah Penugasan,No HP / WhatsApp,Email,Status,Kata Sandi\n"
+        "PTG-BATCH-001,Enumerator Batch Baru,Petugas Lapangan,Bandung Barat,081299998888,batch1@survei.go.id,Aktif,password123\n"
+        "PTG-BATCH-002,Koordinator Batch Baru,Koordinator Wilayah,Jakarta Utara,081277776666,batch2@survei.go.id,Aktif,password123\n"
+    )
+    data = {
+        'import_file': (io.BytesIO(csv_content.encode('utf-8')), 'test_batch_petugas.csv')
+    }
+    res_import = client.post('/petugas/import', data=data, content_type='multipart/form-data', follow_redirects=True)
+    assert res_import.status_code == 200
+    assert b"Proses impor selesai" in res_import.data
+    assert b"petugas baru berhasil didaftarkan" in res_import.data
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT nama, jabatan, wilayah FROM petugas WHERE nip = 'PTG-BATCH-001'")
+    row_b1 = c.fetchone()
+    assert row_b1 and row_b1[0] == 'Enumerator Batch Baru'
+
+    # Uji update petugas eksisting via import ulang
+    csv_update = (
+        "NIP,Nama Lengkap,Jabatan,Wilayah Penugasan,No HP / WhatsApp,Email,Status,Kata Sandi\n"
+        "PTG-BATCH-001,Enumerator Batch Update Nama,Senior Supervisor,Bandung Kota,081299998888,batch1@survei.go.id,Aktif,password123\n"
+    )
+    data_up = {
+        'import_file': (io.BytesIO(csv_update.encode('utf-8')), 'test_update_petugas.csv')
+    }
+    res_up = client.post('/petugas/import', data=data_up, content_type='multipart/form-data', follow_redirects=True)
+    assert res_up.status_code == 200
+    assert b"diperbarui" in res_up.data
+
+    c.execute("SELECT nama, jabatan, wilayah FROM petugas WHERE nip = 'PTG-BATCH-001'")
+    row_up = c.fetchone()
+    assert row_up and row_up[0] == 'Enumerator Batch Update Nama'
+    assert row_up[1] == 'Senior Supervisor'
+
+    # Bersihkan dummy test petugas
+    c.execute("DELETE FROM petugas WHERE nip IN ('PTG-BATCH-001', 'PTG-BATCH-002')")
+    conn.commit()
+    conn.close()
+    print("    -> Passed! Bulk import (inserts, updates, and validations) verified.")
+
     print("\n=======================================================")
-    print(" ALL 44 AUTOMATED INTEGRATION TESTS PASSED 100%! ")
+    print(" ALL 47 AUTOMATED INTEGRATION TESTS PASSED 100%! ")
     print("=======================================================\n")
 
 if __name__ == '__main__':
