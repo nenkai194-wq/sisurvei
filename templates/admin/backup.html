@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block title %}Backup & Pemulihan Data - SiSurvei PRO{% endblock %}
+{% block header_title %}Backup & Pemulihan Aset Data Perusahaan{% endblock %}
+{% block header_subtitle %}Pusat pencadangan seluruh aset digital, database operasional, instrumen survei, responden, dan arsip media{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- TOP HERO BANNER -->
+  <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 md:p-8 text-white border border-cyan-500/30 shadow-xl relative overflow-hidden">
+    <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+      <i class="fa-solid fa-box-archive text-[220px] text-white"></i>
+    </div>
+
+    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
+          <i class="fa-solid fa-shield-halved text-cyan-400"></i>
+          <span>PROTEKSI DATA & KELANGSUNGAN BISNIS</span>
+        </div>
+        <h2 class="text-xl md:text-2xl font-bold tracking-tight text-white">Pencadangan Menyeluruh Aset Perusahaan</h2>
+        <p class="text-xs md:text-sm text-slate-300 max-w-2xl leading-relaxed">
+          Amankan seluruh rekaman kegiatan survei, lembar jawaban responden, data petugas enumerator, foto profil, dan konfigurasi sistem ke dalam format cadangan yang dapat dipulihkan sewaktu-waktu.
+        </p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <form method="POST" action="{{ url_for('admin_backup_create_snapshot') }}" class="inline">
+          <button type="submit" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 text-xs font-bold text-slate-900 bg-cyan-400 hover:bg-cyan-300 rounded-xl shadow-lg shadow-cyan-500/20 transition transform hover:-translate-y-0.5">
+            <i class="fa-solid fa-camera"></i>
+            <span>Buat Snapshot Server</span>
+          </button>
+        </form>
+
+        <button onclick="document.getElementById('modalRestore').classList.remove('hidden')" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-600 transition">
+          <i class="fa-solid fa-rotate-left text-amber-400"></i>
+          <span>Pulihkan / Restore</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSET STATS KPI -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+      <p class="text-xl font-extrabold text-blue-600">{{ total_survei }}</p>
+      <p class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Survei</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+      <p class="text-xl font-extrabold text-indigo-600">{{ total_pertanyaan }}</p>
+      <p class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Soal Kuisioner</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+      <p class="text-xl font-extrabold text-emerald-600">{{ total_petugas }}</p>
+      <p class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Petugas / Tim</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+      <p class="text-xl font-extrabold text-purple-600">{{ total_responden }}</p>
+      <p class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Responden</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+      <p class="text-xl font-extrabold text-cyan-600">{{ db_size_kb }} KB</p>
+      <p class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Ukuran DB</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+      <p class="text-xl font-extrabold text-amber-600">{{ total_uploads }} File</p>
+      <p class="text-[11px] text-slate-500 font-semibold uppercase tracking-wider mt-1">Foto & Media</p>
+    </div>
+  </div>
+
+  <!-- 4 PRIMARY EXPORT DOWNLOAD CARDS -->
+  <div class="space-y-3">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+        <i class="fa-solid fa-cloud-arrow-down text-blue-600"></i>
+        <span>Pilihan Format Pengunduhan Cadangan Data</span>
+      </h3>
+      <span class="text-xs text-slate-400">Unduh langsung ke perangkat lokal komputer Anda</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- CARD 1: ZIP FULL PACKAGE -->
+      <div class="bg-white rounded-2xl p-5 border-2 border-cyan-500/40 shadow-sm hover:shadow-md transition flex flex-col justify-between relative group overflow-hidden">
+        <span class="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-cyan-100 text-cyan-800 rounded-md">
+          LENGKAP
+        </span>
+        <div class="space-y-3">
+          <div class="w-11 h-11 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-file-zipper"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">Paket Arsip ZIP Lengkap</h4>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+              Termasuk file database SQLite binary, script SQL dump, seluruh folder foto/media upload, dan file manifest JSON.
+            </p>
+          </div>
+        </div>
+        <div class="pt-4 mt-2 border-t border-slate-100">
+          <a href="{{ url_for('admin_backup_download', fmt='zip') }}" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold text-white bg-cyan-600 hover:bg-cyan-700 rounded-xl shadow-md shadow-cyan-600/20 transition">
+            <i class="fa-solid fa-download"></i>
+            <span>Unduh Paket ZIP</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- CARD 2: MASTER EXCEL -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+        <div class="space-y-3">
+          <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-file-excel"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">Master Data Excel (.xlsx)</h4>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+              Workbook multi-sheet rapi (Survei, Instrumen Soal, Petugas, Profil Responden, Seluruh Lembar Jawaban, Pengaturan).
+            </p>
+          </div>
+        </div>
+        <div class="pt-4 mt-2 border-t border-slate-100">
+          <a href="{{ url_for('admin_backup_download', fmt='excel') }}" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-600/20 transition">
+            <i class="fa-solid fa-download"></i>
+            <span>Unduh Master Excel</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- CARD 3: RAW SQLITE DB -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+        <div class="space-y-3">
+          <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-database"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">Database SQLite (.db)</h4>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+              Salinan binary instan file <code class="text-[11px] text-blue-600">sisurvei.db</code> untuk backup cepat atau dibuka di DB Browser.
+            </p>
+          </div>
+        </div>
+        <div class="pt-4 mt-2 border-t border-slate-100">
+          <a href="{{ url_for('admin_backup_download', fmt='db') }}" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-600/20 transition">
+            <i class="fa-solid fa-download"></i>
+            <span>Unduh File .DB</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- CARD 4: SQL DUMP SCRIPT -->
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+        <div class="space-y-3">
+          <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-file-code"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-900">Skrip SQL Dump (.sql)</h4>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+              Seluruh DDL struktur tabel dan SQL INSERT statement lengkap yang siap di-import ke DBMS mana pun.
+            </p>
+          </div>
+        </div>
+        <div class="pt-4 mt-2 border-t border-slate-100">
+          <a href="{{ url_for('admin_backup_download', fmt='sql') }}" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md shadow-amber-600/20 transition">
+            <i class="fa-solid fa-download"></i>
+            <span>Unduh Script SQL</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SAVED SERVER SNAPSHOTS TABLE -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-5 md:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div>
+        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-server text-indigo-600"></i>
+          <span>Arsip Cadangan Tersimpan di Server Lokal</span>
+        </h3>
+        <p class="text-xs text-slate-500 mt-0.5">Daftar snapshot yang tersimpan di direktori server untuk pemulihan darurat cepat.</p>
+      </div>
+
+      <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+        {{ backup_files|length }} File Cadangan
+      </span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-600">
+        <thead class="bg-slate-100/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+          <tr>
+            <th class="py-3 px-4 md:px-6">Nama File Arsip</th>
+            <th class="py-3 px-4">Tipe Format</th>
+            <th class="py-3 px-4">Ukuran File</th>
+            <th class="py-3 px-4">Waktu Pembuatan</th>
+            <th class="py-3 px-4 md:px-6 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% if backup_files %}
+            {% for b in backup_files %}
+            <tr class="hover:bg-slate-50/80 transition">
+              <td class="py-3.5 px-4 md:px-6 font-mono text-slate-800 font-semibold flex items-center gap-2.5">
+                <i class="fa-solid {% if b.is_zip %}fa-file-zipper text-cyan-500{% else %}fa-database text-blue-500{% endif %}"></i>
+                <span>{{ b.filename }}</span>
+              </td>
+              <td class="py-3.5 px-4">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if b.is_zip %}bg-cyan-50 text-cyan-700 border border-cyan-200{% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                  {{ 'ZIP SNAPSHOT' if b.is_zip else 'SQLITE DB' }}
+                </span>
+              </td>
+              <td class="py-3.5 px-4 font-medium text-slate-700">
+                {{ b.size_kb }} KB
+              </td>
+              <td class="py-3.5 px-4 text-slate-400 font-mono text-[11px]">
+                {{ b.created_at }}
+              </td>
+              <td class="py-3.5 px-4 md:px-6 text-center">
+                <div class="flex items-center justify-center space-x-2">
+                  <a href="{{ url_for('admin_backup_download_file', filename=b.filename) }}" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition" title="Unduh File">
+                    <i class="fa-solid fa-download text-sm"></i>
+                  </a>
+                  <form method="POST" action="{{ url_for('admin_backup_delete_file', filename=b.filename) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus arsip backup ini?')" class="inline">
+                    <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Hapus Arsip">
+                      <i class="fa-solid fa-trash-can text-sm"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="py-10 text-center text-slate-400 text-xs">
+                <i class="fa-solid fa-box-open text-3xl mb-2 text-slate-300 block"></i>
+                <span>Belum ada snapshot arsip cadangan di server. Klik tombol "Buat Snapshot Server" di atas untuk membuat cadangan.</span>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL RESTORE / PEMULIHAN CADANGAN -->
+<div id="modalRestore" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+  <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-amber-50/50">
+      <h3 class="text-sm font-bold text-amber-900 flex items-center gap-2">
+        <i class="fa-solid fa-rotate-left text-amber-600"></i>
+        <span>Pemulihan Basis Data (Restore Database)</span>
+      </h3>
+      <button onclick="document.getElementById('modalRestore').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_backup_restore') }}" enctype="multipart/form-data" class="p-6 space-y-4">
+      <div class="p-3.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs space-y-1.5">
+        <p class="font-bold flex items-center gap-1.5">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+          <span>Peringatan Keamanan Penting:</span>
+        </p>
+        <p class="text-slate-600 leading-relaxed">
+          Memulihkan database akan menggantikan data yang sedang berjalan saat ini dengan data yang ada pada file cadangan yang Anda pilih. Sistem secara otomatis akan membuat snapshot penyelamatan cadangan saat ini sebelum pemulihan dijalankan.
+        </p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Pilih File Cadangan (.db atau .sql)</label>
+        <input type="file" name="backup_file" accept=".db,.sql" required class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition">
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+        <button type="button" onclick="document.getElementById('modalRestore').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+        <button type="submit" onclick="return confirm('Apakah Anda yakin ingin memulihkan database dari file ini?')" class="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md shadow-amber-500/20 transition">Mulai Pemulihan</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

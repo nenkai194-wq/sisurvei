@@ -4,6 +4,12 @@ import json
 
 def run_tests():
     init_db()
+    from werkzeug.security import generate_password_hash
+    conn_setup = get_db()
+    conn_setup.execute("UPDATE users SET password_hash = ?, status = 'Aktif' WHERE username IN ('admin', 'admin_staf')", (generate_password_hash('admin123'),))
+    conn_setup.commit()
+    conn_setup.close()
+
     client = app.test_client()
     conn = get_db()
     c = conn.cursor()
@@ -345,8 +351,68 @@ def run_tests():
     assert b"Hanya Super Admin yang berwenang" in res.data
     print("    -> Passed! Critical action /survei/1/hapus blocked for Admin Staf.")
 
+    print("\n--- PHASE 8: TESTING BACKUP & DATA RECOVERY MODULE (SUPER ADMIN) ---")
+
+    print("[35] Testing Admin Staf Access to /admin/backup (Must be Blocked)...")
+    res = client.get('/admin/backup', follow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['Location'] == '/' or res.headers['Location'].endswith('/')
+    print("    -> Passed! Admin Staf blocked from /admin/backup.")
+
+    print("[36] Testing Super Admin Access to /admin/backup...")
+    client.get('/logout')
+    client.post('/login', data={'role': 'admin', 'identifier': 'admin', 'password': 'admin123'}, follow_redirects=True)
+    res = client.get('/admin/backup')
+    assert res.status_code == 200
+    assert b"Backup & Pemulihan Aset Data Perusahaan" in res.data
+    assert b"Paket Arsip ZIP Lengkap" in res.data
+    assert b"Master Data Excel (.xlsx)" in res.data
+    print("    -> Passed! Super Admin access to /admin/backup UI verified.")
+
+    print("[37] Testing Super Admin Downloading Full ZIP Backup...")
+    res = client.get('/admin/backup/download/zip')
+    assert res.status_code == 200
+    assert res.headers['Content-Type'] == 'application/zip'
+    assert len(res.data) > 0
+    import zipfile, io
+    zf = zipfile.ZipFile(io.BytesIO(res.data))
+    namelist = zf.namelist()
+    assert 'database/sisurvei.db' in namelist
+    assert 'database/sisurvei_dump.sql' in namelist
+    assert 'backup_manifest.json' in namelist
+    print("    -> Passed! Full ZIP backup generated and contains database, sql dump, and manifest.")
+
+    print("[38] Testing Super Admin Downloading Master Excel Backup (.xlsx)...")
+    res = client.get('/admin/backup/download/excel')
+    assert res.status_code == 200
+    assert 'spreadsheetml' in res.headers['Content-Type']
+    assert len(res.data) > 0
+    import openpyxl
+    wb = openpyxl.load_workbook(io.BytesIO(res.data))
+    assert 'Kegiatan Survei' in wb.sheetnames
+    assert 'Data Responden' in wb.sheetnames
+    assert 'Data Petugas' in wb.sheetnames
+    assert 'Jawaban Responden' in wb.sheetnames
+    print("    -> Passed! Master Excel workbook generated with all company survey data sheets.")
+
+    print("[39] Testing Super Admin Downloading Raw SQLite .db & .sql Dump...")
+    res = client.get('/admin/backup/download/db')
+    assert res.status_code == 200
+    assert len(res.data) > 0
+
+    res = client.get('/admin/backup/download/sql')
+    assert res.status_code == 200
+    assert b"CREATE TABLE" in res.data
+    print("    -> Passed! Raw DB and SQL dump exports verified.")
+
+    print("[40] Testing Super Admin Creating Server Snapshot...")
+    res = client.post('/admin/backup/create', follow_redirects=True)
+    assert res.status_code == 200
+    assert b"Snapshot cadangan lengkap berhasil disimpan" in res.data
+    print("    -> Passed! Server snapshot creation and listing verified.")
+
     print("\n=======================================================")
-    print(" ALL 34 AUTOMATED INTEGRATION TESTS PASSED 100%! ")
+    print(" ALL 40 AUTOMATED INTEGRATION TESTS PASSED 100%! ")
     print("=======================================================\n")
 
 if __name__ == '__main__':

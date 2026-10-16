@@ -3,6 +3,8 @@ import io
 import json
 import csv
 import socket
+import zipfile
+import shutil
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import (
@@ -2182,6 +2184,401 @@ def admin_logs():
     
     conn.close()
     return render_template('admin/logs.html', logs=logs, total_logs=total_logs, filter_role=filter_role, filter_q=filter_q)
+
+# ==========================================
+# 11. MODUL BACKUP DATA LENGKAP & PEMULIHAN ASET (SUPER ADMIN)
+# ==========================================
+
+BACKUP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+def build_full_backup_zip():
+    """Menghasilkan file zip lengkap berisi database, dump sql, aset upload, dan manifest sistem"""
+    buf = io.BytesIO()
+    timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+    db_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sisurvei.db')
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM survei")
+    total_survei = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM pertanyaan")
+    total_pertanyaan = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM petugas")
+    total_petugas = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM responden")
+    total_responden = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM jawaban")
+    total_jawaban = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM users")
+    total_users = cursor.fetchone()[0]
+    
+    # Generate SQL dump
+    sql_dump_str = '\n'.join(conn.iterdump())
+    conn.close()
+    
+    manifest = {
+        'nama_aplikasi': 'SiSurvei - Sistem Informasi & Manajemen Survei Terpadu',
+        'versi_backup': '2.6 PRO',
+        'waktu_backup': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'dibuat_oleh': f"{session.get('user_name', 'Super Admin')} (@{session.get('username', 'admin')})",
+        'ringkasan_data': {
+            'total_kegiatan_survei': total_survei,
+            'total_pertanyaan': total_pertanyaan,
+            'total_petugas': total_petugas,
+            'total_responden': total_responden,
+            'total_jawaban_kuisioner': total_jawaban,
+            'total_akun_admin': total_users
+        }
+    }
+    
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # 1. Database binary
+        if os.path.exists(db_file_path):
+            zf.write(db_file_path, arcname='database/sisurvei.db')
+            
+        # 2. SQL Dump script
+        zf.writestr('database/sisurvei_dump.sql', sql_dump_str)
+        
+        # 3. Manifest info
+        zf.writestr('backup_manifest.json', json.dumps(manifest, indent=2))
+        
+        # 4. Aset Uploads (Foto Petugas & Avatar Admin)
+        static_uploads = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+        if os.path.exists(static_uploads):
+            for root, dirs, files in os.walk(static_uploads):
+                for f in files:
+                    file_full = os.path.join(root, f)
+                    rel_path = os.path.relpath(file_full, os.path.dirname(os.path.abspath(__file__)))
+                    zf.write(file_full, arcname=rel_path)
+                    
+    buf.seek(0)
+    return buf, timestamp_str
+
+def build_master_excel_backup():
+    """Menghasilkan master workbook Excel berisikan seluruh tabel aset SiSurvei dengan multi-sheet berformat rapi"""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    header_font = Font(name='Calibri', size=11, bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='1E293B', end_color='1E293B', fill_type='solid')
+    thin_border = Border(
+        left=Side(style='thin', color='E2E8F0'),
+        right=Side(style='thin', color='E2E8F0'),
+        top=Side(style='thin', color='E2E8F0'),
+        bottom=Side(style='thin', color='E2E8F0')
+    )
+
+    def style_sheet(ws, title, columns, rows_data):
+        ws.title = title
+        ws.views.sheetView[0].showGridLines = True
+        
+        ws.append(columns)
+        for col_idx in range(1, len(columns) + 1):
+            cell = ws.cell(row=1, column=col_idx)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            cell.border = thin_border
+            ws.row_dimensions[1].height = 26
+
+        for r_idx, r_data in enumerate(rows_data, start=2):
+            ws.append(list(r_data))
+            for c_idx in range(1, len(r_data) + 1):
+                c_cell = ws.cell(row=r_idx, column=c_idx)
+                c_cell.font = Font(name='Calibri', size=10)
+                c_cell.border = thin_border
+                c_cell.alignment = Alignment(vertical='center')
+
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            col_letter = get_column_letter(col[0].column)
+            ws.column_dimensions[col_letter].width = min(50, max(max_len + 4, 12))
+
+    # Sheet 1: Kegiatan Survei
+    cursor.execute("SELECT id, kode_survei, judul, kategori, target_responden, tanggal_mulai, tanggal_selesai, status, is_public, created_at FROM survei ORDER BY id ASC")
+    style_sheet(wb.create_sheet(), 'Kegiatan Survei', 
+        ['ID', 'Kode Survei', 'Judul Survei', 'Kategori', 'Target Responden', 'Tgl Mulai', 'Tgl Selesai', 'Status', 'Publik (1/0)', 'Dibuat Pada'],
+        cursor.fetchall()
+    )
+
+    # Sheet 2: Instrumen Pertanyaan
+    cursor.execute('''
+        SELECT p.id, p.survei_id, s.judul, p.urutan, p.teks_pertanyaan, p.tipe_pertanyaan, p.pilihan_opsi, p.is_required, p.rating_max
+        FROM pertanyaan p
+        LEFT JOIN survei s ON p.survei_id = s.id
+        ORDER BY p.survei_id ASC, p.urutan ASC
+    ''')
+    style_sheet(wb.create_sheet(), 'Instrumen Pertanyaan',
+        ['ID', 'Survei ID', 'Judul Survei', 'No. Urut', 'Teks Pertanyaan', 'Tipe Pertanyaan', 'Pilihan Opsi', 'Wajib Diisi (1/0)', 'Rating Maks'],
+        cursor.fetchall()
+    )
+
+    # Sheet 3: Data Petugas
+    cursor.execute("SELECT id, nip, nama, email, no_hp, wilayah, jabatan, status, foto, created_at FROM petugas ORDER BY id ASC")
+    style_sheet(wb.create_sheet(), 'Data Petugas',
+        ['ID', 'NIP', 'Nama Lengkap', 'Email', 'No HP/WA', 'Wilayah Penugasan', 'Jabatan', 'Status', 'Foto Path', 'Terdaftar Pada'],
+        cursor.fetchall()
+    )
+
+    # Sheet 4: Data Responden
+    cursor.execute('''
+        SELECT r.id, r.survei_id, s.judul, r.petugas_id, COALESCE(p.nama, 'Mandiri / Publik'),
+               r.nama_responden, r.kontak_responden, r.usia, r.jenis_kelamin, r.pendidikan_terakhir,
+               r.alamat_wilayah, r.titik_koordinat, r.waktu_selesai
+        FROM responden r
+        LEFT JOIN survei s ON r.survei_id = s.id
+        LEFT JOIN petugas p ON r.petugas_id = p.id
+        ORDER BY r.id ASC
+    ''')
+    style_sheet(wb.create_sheet(), 'Data Responden',
+        ['ID Responden', 'Survei ID', 'Judul Survei', 'Petugas ID', 'Enumerator', 'Nama Responden', 'No Kontak', 'Usia', 'Jenis Kelamin', 'Pendidikan Terakhir', 'Alamat/Wilayah', 'Titik Koordinat GPS', 'Waktu Submit'],
+        cursor.fetchall()
+    )
+
+    # Sheet 5: Seluruh Jawaban Responden
+    cursor.execute('''
+        SELECT j.id, j.responden_id, r.nama_responden, j.pertanyaan_id, p.teks_pertanyaan,
+               COALESCE(j.jawaban_teks, CAST(j.jawaban_angka AS TEXT))
+        FROM jawaban j
+        LEFT JOIN responden r ON j.responden_id = r.id
+        LEFT JOIN pertanyaan p ON j.pertanyaan_id = p.id
+        ORDER BY j.responden_id ASC, j.pertanyaan_id ASC
+    ''')
+    style_sheet(wb.create_sheet(), 'Jawaban Responden',
+        ['ID Jawaban', 'Responden ID', 'Nama Responden', 'Pertanyaan ID', 'Teks Pertanyaan', 'Jawaban Tercatat'],
+        cursor.fetchall()
+    )
+
+    # Sheet 6: Pengaturan & Identitas Instansi
+    cursor.execute("SELECT kunci, nilai, kategori, updated_at FROM pengaturan ORDER BY kategori ASC, kunci ASC")
+    style_sheet(wb.create_sheet(), 'Pengaturan Sistem',
+        ['Kunci Parameter', 'Nilai / Konfigurasi', 'Kategori', 'Terakhir Diperbarui'],
+        cursor.fetchall()
+    )
+
+    # Sheet 7: Pengguna Admin
+    cursor.execute("SELECT id, username, nama, email, no_hp, role, status, created_at FROM users ORDER BY id ASC")
+    style_sheet(wb.create_sheet(), 'Akun Admin',
+        ['ID', 'Username', 'Nama Lengkap', 'Email', 'No HP/WA', 'Peran (Role)', 'Status', 'Dibuat Pada'],
+        cursor.fetchall()
+    )
+
+    conn.close()
+
+    excel_buf = io.BytesIO()
+    wb.save(excel_buf)
+    excel_buf.seek(0)
+    timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return excel_buf, timestamp_str
+
+@app.route('/admin/backup')
+@super_admin_required
+def admin_backup():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Statistik sistem
+    cursor.execute("SELECT COUNT(*) FROM survei")
+    total_survei = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM pertanyaan")
+    total_pertanyaan = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM petugas")
+    total_petugas = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM responden")
+    total_responden = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM jawaban")
+    total_jawaban = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM users")
+    total_users = cursor.fetchone()[0]
+    conn.close()
+    
+    # Ukuran file database
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sisurvei.db')
+    db_size_kb = round(os.path.getsize(db_path) / 1024, 1) if os.path.exists(db_path) else 0
+    
+    # Hitung jumlah file upload
+    uploads_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+    total_uploads = 0
+    uploads_size_kb = 0
+    if os.path.exists(uploads_dir):
+        for root, dirs, files in os.walk(uploads_dir):
+            total_uploads += len(files)
+            for f in files:
+                uploads_size_kb += os.path.getsize(os.path.join(root, f)) / 1024
+    uploads_size_kb = round(uploads_size_kb, 1)
+    
+    # Daftar file backup yang ada di server
+    backup_files = []
+    if os.path.exists(BACKUP_DIR):
+        for fname in sorted(os.listdir(BACKUP_DIR), reverse=True):
+            fpath = os.path.join(BACKUP_DIR, fname)
+            if os.path.isfile(fpath):
+                stat = os.stat(fpath)
+                backup_files.append({
+                    'filename': fname,
+                    'size_kb': round(stat.st_size / 1024, 1),
+                    'created_at': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                    'is_zip': fname.endswith('.zip'),
+                    'is_db': fname.endswith('.db')
+                })
+                
+    return render_template(
+        'admin/backup.html',
+        total_survei=total_survei,
+        total_pertanyaan=total_pertanyaan,
+        total_petugas=total_petugas,
+        total_responden=total_responden,
+        total_jawaban=total_jawaban,
+        total_users=total_users,
+        total_uploads=total_uploads,
+        db_size_kb=db_size_kb,
+        uploads_size_kb=uploads_size_kb,
+        backup_files=backup_files
+    )
+
+@app.route('/admin/backup/download/<string:fmt>')
+@super_admin_required
+def admin_backup_download(fmt):
+    if fmt == 'zip':
+        buf, timestamp_str = build_full_backup_zip()
+        filename = f"SiSurvei_Full_Backup_{timestamp_str}.zip"
+        log_activity("Unduh Backup ZIP", f"Super Admin mengunduh paket arsip lengkap sistem (.zip)")
+        return send_file(
+            buf,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=filename
+        )
+    elif fmt == 'excel':
+        buf, timestamp_str = build_master_excel_backup()
+        filename = f"SiSurvei_Master_Data_{timestamp_str}.xlsx"
+        log_activity("Unduh Backup Excel", f"Super Admin mengunduh rekapitulasi data master Excel (.xlsx)")
+        return send_file(
+            buf,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    elif fmt == 'db':
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sisurvei.db')
+        timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"sisurvei_raw_{timestamp_str}.db"
+        log_activity("Unduh Backup DB", f"Super Admin mengunduh salinan database mentah SQLite (.db)")
+        return send_file(
+            db_path,
+            mimetype='application/octet-stream',
+            as_attachment=True,
+            download_name=filename
+        )
+    elif fmt == 'sql':
+        conn = get_db()
+        sql_dump = '\n'.join(conn.iterdump())
+        conn.close()
+        timestamp_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+        buf = io.BytesIO(sql_dump.encode('utf-8'))
+        filename = f"sisurvei_dump_{timestamp_str}.sql"
+        log_activity("Unduh Backup SQL", f"Super Admin mengunduh script ekspor SQL dump (.sql)")
+        return send_file(
+            buf,
+            mimetype='application/sql',
+            as_attachment=True,
+            download_name=filename
+        )
+    else:
+        flash("Format unduhan backup tidak valid.", "danger")
+        return redirect(url_for('admin_backup'))
+
+@app.route('/admin/backup/create', methods=['POST'])
+@super_admin_required
+def admin_backup_create_snapshot():
+    buf, timestamp_str = build_full_backup_zip()
+    filename = f"snapshot_sisurvei_{timestamp_str}.zip"
+    filepath = os.path.join(BACKUP_DIR, filename)
+    
+    with open(filepath, 'wb') as f:
+        f.write(buf.getbuffer())
+        
+    log_activity("Buat Snapshot Backup", f"Super Admin membuat snapshot arsip baru di server: {filename}")
+    flash(f"Snapshot cadangan lengkap berhasil disimpan di server: '{filename}'.", "success")
+    return redirect(url_for('admin_backup'))
+
+@app.route('/admin/backup/file/<string:filename>')
+@super_admin_required
+def admin_backup_download_file(filename):
+    clean_name = secure_filename(filename)
+    filepath = os.path.join(BACKUP_DIR, clean_name)
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True, download_name=clean_name)
+    flash("File backup tidak ditemukan di server.", "danger")
+    return redirect(url_for('admin_backup'))
+
+@app.route('/admin/backup/delete/<string:filename>', methods=['POST'])
+@super_admin_required
+def admin_backup_delete_file(filename):
+    clean_name = secure_filename(filename)
+    filepath = os.path.join(BACKUP_DIR, clean_name)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        log_activity("Hapus File Backup", f"Super Admin menghapus arsip cadangan: {clean_name}")
+        flash(f"File arsip backup '{clean_name}' berhasil dihapus dari server.", "success")
+    else:
+        flash("File backup tidak ditemukan.", "danger")
+    return redirect(url_for('admin_backup'))
+
+@app.route('/admin/backup/restore', methods=['POST'])
+@super_admin_required
+def admin_backup_restore():
+    if 'backup_file' not in request.files:
+        flash("Tidak ada file cadangan yang dipilih.", "danger")
+        return redirect(url_for('admin_backup'))
+        
+    file = request.files['backup_file']
+    if not file or file.filename == '':
+        flash("Silakan pilih file cadangan database (.db atau .sql).", "danger")
+        return redirect(url_for('admin_backup'))
+        
+    filename = secure_filename(file.filename)
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    
+    if ext not in ('db', 'sql'):
+        flash("Format file pemulihan tidak didukung. Harap unggah file .db atau .sql.", "danger")
+        return redirect(url_for('admin_backup'))
+        
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sisurvei.db')
+    emergency_snapshot = os.path.join(BACKUP_DIR, f"emergency_pre_restore_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
+    
+    if os.path.exists(db_path):
+        shutil.copy2(db_path, emergency_snapshot)
+        
+    try:
+        if ext == 'db':
+            file.save(db_path)
+        elif ext == 'sql':
+            sql_content = file.read().decode('utf-8', errors='ignore')
+            conn = get_db()
+            conn.executescript(sql_content)
+            conn.commit()
+            conn.close()
+            
+        log_activity("Restore Database", f"Super Admin memulihkan data sistem dari file: {filename}")
+        flash(f"Basis data dan aset sistem berhasil dipulihkan dari '{filename}'. Cadangan pengaman pra-pemulihan otomatis tersimpan.", "success")
+    except Exception as e:
+        if os.path.exists(emergency_snapshot):
+            shutil.copy2(emergency_snapshot, db_path)
+        flash(f"Gagal memulihkan database: {str(e)}. Sistem telah dikembalikan ke kondisi sebelumnya.", "danger")
+        
+    return redirect(url_for('admin_backup'))
+
+
 
 if __name__ == '__main__':
     init_db()
