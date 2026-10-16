@@ -273,8 +273,80 @@ def run_tests():
     assert '-6.208763' in (detail_data['responden'].get('titik_koordinat') or detail_data['responden'].get('alamat_wilayah') or '')
     print("    -> Passed! Operator can fetch respondent detail modal data; verified pendidikan_terakhir & GPS coordinates.")
 
+    print("\n--- PHASE 7: TESTING DUAL ADMIN ROLES (SUPER ADMIN VS ADMIN STAF) ---")
+    
+    print("[28] Testing Super Admin Login & Access to /admin/profil...")
+    client.get('/logout')
+    res = client.post('/login', data={'role': 'admin', 'identifier': 'admin', 'password': 'admin123'}, follow_redirects=True)
+    assert res.status_code == 200
+    res = client.get('/admin/profil')
+    assert res.status_code == 200
+    assert b"SUPER ADMINISTRATOR" in res.data
+    assert b"Profil & Akun Administrator" in res.data
+    print("    -> Passed! Super Admin access to /admin/profil confirmed.")
+
+    print("[29] Testing Super Admin Access to /admin/users, /admin/pengaturan, /admin/logs...")
+    res = client.get('/admin/users')
+    assert res.status_code == 200
+    assert b"Manajemen Pengguna Admin" in res.data
+
+    res = client.get('/admin/pengaturan')
+    assert res.status_code == 200
+    assert b"Pengaturan Sistem" in res.data
+
+    res = client.get('/admin/logs')
+    assert res.status_code == 200
+    assert b"Riwayat Audit Trail" in res.data
+    print("    -> Passed! Super Admin has full access to all system administration modules.")
+
+    print("[30] Testing Super Admin Updating Profile Details...")
+    res = client.post('/admin/profil', data={
+        'action': 'update_profile',
+        'nama': 'Administrator Utama Super',
+        'email': 'superadmin@survei.go.id',
+        'no_hp': '081234567899',
+        'foto_type': 'keep'
+    }, follow_redirects=True)
+    assert res.status_code == 200
+    assert b"berhasil diperbarui" in res.data
+    print("    -> Passed! Super Admin profile updated successfully.")
+
+    print("[31] Testing Admin Staf Login (admin_staf)...")
+    client.get('/logout')
+    res = client.post('/login', data={'role': 'admin', 'identifier': 'admin_staf', 'password': 'admin123'}, follow_redirects=True)
+    assert res.status_code == 200
+    assert b"Staf Operasional Survei" in res.data
+    print("    -> Passed! Admin Staf login succeeded.")
+
+    print("[32] Testing Admin Staf Access to /admin/profil (Allowed)...")
+    res = client.get('/admin/profil')
+    assert res.status_code == 200
+    assert b"ADMINISTRATOR STAF" in res.data
+    assert b"Hak Akses Akun Anda" in res.data
+    print("    -> Passed! Admin Staf can access own profile.")
+
+    print("[33] Testing Admin Staf Access to /admin/users, /admin/pengaturan, /admin/logs (Must be Blocked)...")
+    res = client.get('/admin/users', follow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['Location'] == '/' or res.headers['Location'].endswith('/')
+
+    res = client.get('/admin/pengaturan', follow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['Location'] == '/' or res.headers['Location'].endswith('/')
+
+    res = client.get('/admin/logs', follow_redirects=False)
+    assert res.status_code == 302
+    assert res.headers['Location'] == '/' or res.headers['Location'].endswith('/')
+    print("    -> Passed! Admin Staf strictly blocked from Super Admin modules.")
+
+    print("[34] Testing Admin Staf Attempting to Delete Survey (Must be Blocked)...")
+    res = client.post('/survei/1/hapus', follow_redirects=True)
+    assert res.status_code == 200
+    assert b"Hanya Super Admin yang berwenang" in res.data
+    print("    -> Passed! Critical action /survei/1/hapus blocked for Admin Staf.")
+
     print("\n=======================================================")
-    print(" ALL 27 AUTOMATED INTEGRATION TESTS PASSED 100%! ")
+    print(" ALL 34 AUTOMATED INTEGRATION TESTS PASSED 100%! ")
     print("=======================================================\n")
 
 if __name__ == '__main__':

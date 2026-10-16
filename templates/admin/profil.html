@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+
+{% block title %}Profil Saya - SiSurvei PRO{% endblock %}
+{% block header_title %}Profil & Akun Administrator{% endblock %}
+{% block header_subtitle %}Kelola informasi profil, foto avatar, dan keamanan kata sandi Anda{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+  <!-- TOP SUMMARY BANNER -->
+  <div class="bg-gradient-to-r {% if admin.role == 'super_admin' %}from-slate-900 via-indigo-950 to-slate-900 border-amber-500/30{% else %}from-slate-900 via-slate-800 to-slate-900 border-blue-500/30{% endif %} rounded-2xl p-6 md:p-8 text-white border shadow-xl relative overflow-hidden">
+    <div class="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
+      <i class="fa-solid {% if admin.role == 'super_admin' %}fa-crown{% else %}fa-shield-halved{% endif %} text-[200px] text-white"></i>
+    </div>
+    
+    <div class="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6 relative z-10 text-center md:text-left">
+      <div class="relative group">
+        {% if admin.foto %}
+        <img src="{{ admin.foto if admin.foto.startswith('http') else url_for('static', filename=admin.foto) }}" alt="{{ admin.nama }}" class="w-24 h-24 md:w-28 md:md-28 rounded-2xl object-cover border-2 {% if admin.role == 'super_admin' %}border-amber-400 shadow-amber-500/30{% else %}border-blue-400 shadow-blue-500/30{% endif %} shadow-2xl">
+        {% else %}
+        <div class="w-24 h-24 md:w-28 md:h-28 rounded-2xl {% if admin.role == 'super_admin' %}bg-gradient-to-tr from-amber-500 via-rose-600 to-indigo-700 border-2 border-amber-300{% else %}bg-gradient-to-tr from-blue-600 to-indigo-700 border-2 border-blue-300{% endif %} flex items-center justify-center text-white text-3xl font-extrabold shadow-2xl">
+          {{ (admin.nama or 'A')[0]|upper }}
+        </div>
+        {% endif %}
+        
+        <span class="absolute -bottom-2 -right-2 w-8 h-8 rounded-full {% if admin.role == 'super_admin' %}bg-amber-500 text-slate-950{% else %}bg-blue-600 text-white{% endif %} flex items-center justify-center text-xs font-bold shadow-md border-2 border-slate-900">
+          <i class="fa-solid {% if admin.role == 'super_admin' %}fa-crown{% else %}fa-shield-halved{% endif %}"></i>
+        </span>
+      </div>
+
+      <div class="flex-1 space-y-1.5">
+        <div class="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+          <h2 class="text-xl md:text-2xl font-bold tracking-tight text-white">{{ admin.nama }}</h2>
+          {% if admin.role == 'super_admin' %}
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-400/40 shadow-sm">
+            <i class="fa-solid fa-crown text-[10px] text-amber-400"></i>
+            <span>SUPER ADMINISTRATOR</span>
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-400/40 shadow-sm">
+            <i class="fa-solid fa-shield-halved text-[10px] text-blue-400"></i>
+            <span>ADMINISTRATOR STAF</span>
+          </span>
+          {% endif %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Aktif</span>
+          </span>
+        </div>
+
+        <p class="text-xs md:text-sm text-slate-300 flex flex-wrap items-center justify-center md:justify-start gap-4 pt-1">
+          <span class="flex items-center gap-1.5">
+            <i class="fa-solid fa-user text-slate-400 text-xs"></i>
+            <span>@{{ admin.username }}</span>
+          </span>
+          <span class="flex items-center gap-1.5">
+            <i class="fa-solid fa-envelope text-slate-400 text-xs"></i>
+            <span>{{ admin.email }}</span>
+          </span>
+          {% if admin.no_hp %}
+          <span class="flex items-center gap-1.5">
+            <i class="fa-brands fa-whatsapp text-emerald-400 text-xs"></i>
+            <span>{{ admin.no_hp }}</span>
+          </span>
+          {% endif %}
+        </p>
+      </div>
+
+      {% if logged_user.is_super_admin %}
+      <div class="pt-2 md:pt-0">
+        <a href="{{ url_for('admin_users') }}" class="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-300 rounded-xl shadow-lg shadow-amber-500/20 transition transform hover:-translate-y-0.5">
+          <i class="fa-solid fa-users-gear"></i>
+          <span>Kelola Semua Admin</span>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- MAIN 2 COLUMNS -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- LEFT COLUMN: STATS & ROLE INFO -->
+    <div class="space-y-6">
+      
+      <!-- Role Privileges Card -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-key text-blue-600"></i>
+          <span>Hak Akses Akun Anda</span>
+        </h3>
+
+        {% if admin.role == 'super_admin' %}
+        <div class="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs space-y-2">
+          <div class="font-bold flex items-center gap-1.5 text-amber-800">
+            <i class="fa-solid fa-crown text-amber-600"></i>
+            <span>Level: Super Administrator (Tingkat Penuh)</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            Anda memegang kendali tertinggi sistem. Berwenang mengelola akun admin lain, mengubah parameter global, melihat log audit, serta melakukan aksi kritis seperti penghapusan survei/data responden.
+          </p>
+        </div>
+        <ul class="text-xs text-slate-600 space-y-2 pt-1">
+          <li class="flex items-center gap-2">
+            <i class="fa-solid fa-check text-emerald-500"></i>
+            <span>Kelola Staf Admin (Buat, Edit, Hapus, Reset Kata Sandi)</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <i class="fa-solid fa-check text-emerald-500"></i>
+            <span>Akses Penuh Pengaturan Instansi & Log Aktivitas</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <i class="fa-solid fa-check text-emerald-500"></i>
+            <span>Hak Eksekusi Penghapusan Survei & Respon</span>
+          </li>
+        </ul>
+        {% else %}
+        <div class="p-3.5 rounded-xl bg-blue-50/80 border border-blue-200/80 text-blue-900 text-xs space-y-2">
+          <div class="font-bold flex items-center gap-1.5 text-blue-800">
+            <i class="fa-solid fa-shield-halved text-blue-600"></i>
+            <span>Level: Administrator Staf (Operasional)</span>
+          </div>
+          <p class="text-slate-600 leading-relaxed">
+            Fokus pada operasional survei: membuat survei, merancang pertanyaan kuisioner, memantau petugas lapangan, dan menganalisis respon serta ekspor laporan Excel/CSV.
+          </p>
+        </div>
+        <ul class="text-xs text-slate-600 space-y-2 pt-1">
+          <li class="flex items-center gap-2">
+            <i class="fa-solid fa-check text-emerald-500"></i>
+            <span>Buat & Rancang Kuisioner Survei (Builder)</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <i class="fa-solid fa-check text-emerald-500"></i>
+            <span>Kelola Data & Penugasan Petugas Lapangan</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <i class="fa-solid fa-check text-emerald-500"></i>
+            <span>Analisis Grafik Hasil Survei & Ekspor Excel/CSV</span>
+          </li>
+          <li class="flex items-center gap-2 text-slate-400">
+            <i class="fa-solid fa-lock text-slate-400"></i>
+            <span>Akses Menu Kelola Admin Dibatasi (Khusus Super Admin)</span>
+          </li>
+        </ul>
+        {% endif %}
+      </div>
+
+      <!-- Quick Platform Stats -->
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-3">
+        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-database text-slate-600"></i>
+          <span>Ikhtisar Data Sistem</span>
+        </h3>
+        <div class="grid grid-cols-3 gap-2 text-center pt-2">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <p class="text-lg font-extrabold text-blue-600">{{ total_survei }}</p>
+            <p class="text-[10px] text-slate-500 font-medium mt-0.5">Survei</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <p class="text-lg font-extrabold text-emerald-600">{{ total_petugas }}</p>
+            <p class="text-[10px] text-slate-500 font-medium mt-0.5">Petugas</p>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <p class="text-lg font-extrabold text-indigo-600">{{ total_respon }}</p>
+            <p class="text-[10px] text-slate-500 font-medium mt-0.5">Respon</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: EDIT PROFILE & PASSWORD TABS -->
+    <div class="lg:col-span-2 space-y-6">
+      
+      <!-- CARD 1: EDIT BIODATA -->
+      <div class="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div class="border-b border-slate-100 pb-4">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2.5">
+            <i class="fa-solid fa-user-pen text-blue-600"></i>
+            <span>Ubah Data Diri & Foto Profil</span>
+          </h3>
+          <p class="text-xs text-slate-500 mt-1">Perbarui nama lengkap, email, nomor kontak, serta foto profil Anda.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_profil') }}" enctype="multipart/form-data" class="space-y-5">
+          <input type="hidden" name="action" value="update_profile">
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Nama Lengkap</label>
+              <input type="text" name="nama" value="{{ admin.nama }}" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Username (ID Akun)</label>
+              <input type="text" value="{{ admin.username }}" disabled class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 text-sm cursor-not-allowed font-mono">
+              <span class="text-[10px] text-slate-400 mt-1 block">Username bersifat unik dan dikunci permanen demi integritas log.</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Alamat Email</label>
+              <input type="email" name="email" value="{{ admin.email }}" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Nomor WhatsApp / HP</label>
+              <input type="text" name="no_hp" value="{{ admin.no_hp or '' }}" placeholder="08xxxxxxxxxx" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            </div>
+          </div>
+
+          <!-- Pilihan Foto Profil -->
+          <div class="pt-2 border-t border-slate-100 space-y-3">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Foto Profil</label>
+            
+            <div class="flex items-center gap-4 text-xs">
+              <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="foto_type" value="keep" checked onclick="toggleFotoSection('keep')" class="text-blue-600 focus:ring-blue-500">
+                <span class="text-slate-700 font-medium">Pertahankan Foto Saat Ini</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="foto_type" value="upload" onclick="toggleFotoSection('upload')" class="text-blue-600 focus:ring-blue-500">
+                <span class="text-slate-700 font-medium">Unggah File Gambar</span>
+              </label>
+              <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="foto_type" value="url" onclick="toggleFotoSection('url')" class="text-blue-600 focus:ring-blue-500">
+                <span class="text-slate-700 font-medium">Tautan URL Gambar</span>
+              </label>
+              {% if admin.foto %}
+              <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                <input type="radio" name="foto_type" value="remove" onclick="toggleFotoSection('remove')" class="text-rose-600 focus:ring-rose-500">
+                <span class="text-rose-600 font-medium">Hapus Foto</span>
+              </label>
+              {% endif %}
+            </div>
+
+            <div id="sectionFotoUpload" class="hidden pt-2">
+              <input type="file" name="foto_file" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition">
+              <span class="text-[10px] text-slate-400 mt-1 block">Format: JPG, PNG, WEBP (Maks 3MB)</span>
+            </div>
+
+            <div id="sectionFotoUrl" class="hidden pt-2">
+              <input type="url" name="foto_url" placeholder="https://domain.com/foto-anda.jpg" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-end">
+            <button type="submit" class="inline-flex items-center space-x-2 px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition">
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>Simpan Perubahan Data Diri</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- CARD 2: GANTI KATA SANDI -->
+      <div class="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div class="border-b border-slate-100 pb-4">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2.5">
+            <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+            <span>Keamanan & Ganti Kata Sandi</span>
+          </h3>
+          <p class="text-xs text-slate-500 mt-1">Gunakan kombinasi kata sandi yang kuat untuk menjaga keamanan akses akun.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_profil') }}" class="space-y-4">
+          <input type="hidden" name="action" value="change_password">
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Kata Sandi Saat Ini</label>
+            <input type="password" name="current_password" required placeholder="Masukkan kata sandi lama Anda" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Kata Sandi Baru</label>
+              <input type="password" name="new_password" required minlength="6" placeholder="Minimal 6 karakter" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Konfirmasi Kata Sandi Baru</label>
+              <input type="password" name="confirm_password" required minlength="6" placeholder="Ulangi kata sandi baru" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none transition">
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-end">
+            <button type="submit" class="inline-flex items-center space-x-2 px-6 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md shadow-emerald-500/20 transition">
+              <i class="fa-solid fa-lock"></i>
+              <span>Perbarui Kata Sandi</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleFotoSection(type) {
+  const secUpload = document.getElementById('sectionFotoUpload');
+  const secUrl = document.getElementById('sectionFotoUrl');
+  if (type === 'upload') {
+    secUpload.classList.remove('hidden');
+    secUrl.classList.add('hidden');
+  } else if (type === 'url') {
+    secUrl.classList.remove('hidden');
+    secUpload.classList.add('hidden');
+  } else {
+    secUpload.classList.add('hidden');
+    secUrl.classList.add('hidden');
+  }
+}
+</script>
+{% endblock %}

@@ -131,25 +131,63 @@
           <span>Portal Petugas / Enumerator</span>
         </a>
 
+        <!-- Section Pengaturan & Profil Admin -->
+        <div class="pt-5 px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Pengaturan & Akun</div>
+
+        <a href="{{ url_for('admin_profil') }}" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if request.endpoint == 'admin_profil' %}bg-blue-600 text-white shadow-md shadow-blue-600/30{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+          <i class="fa-solid fa-id-badge w-5 text-center text-base"></i>
+          <span>Profil Saya</span>
+        </a>
+
+        {% if logged_user.is_super_admin %}
+        <a href="{{ url_for('admin_users') }}" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if request.endpoint in ['admin_users'] %}bg-amber-600 text-white shadow-md shadow-amber-600/30{% else %}text-amber-300/90 hover:bg-slate-800 hover:text-amber-200{% endif %}">
+          <i class="fa-solid fa-users-gear w-5 text-center text-base text-amber-400"></i>
+          <span class="flex-1">Kelola Admin</span>
+          <span class="px-1.5 py-0.5 text-[9px] uppercase font-black bg-amber-500/20 text-amber-300 rounded border border-amber-400/30">SUPER</span>
+        </a>
+
+        <a href="{{ url_for('admin_pengaturan') }}" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if request.endpoint == 'admin_pengaturan' %}bg-blue-600 text-white shadow-md shadow-blue-600/30{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+          <i class="fa-solid fa-sliders w-5 text-center text-base"></i>
+          <span>Pengaturan Sistem</span>
+        </a>
+
+        <a href="{{ url_for('admin_logs') }}" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if request.endpoint == 'admin_logs' %}bg-blue-600 text-white shadow-md shadow-blue-600/30{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+          <i class="fa-solid fa-clock-rotate-left w-5 text-center text-base"></i>
+          <span>Log Aktivitas</span>
+        </a>
+        {% endif %}
 
       </div>
 
       <!-- User / System Info Footer -->
-      <div class="p-4 border-t border-slate-800 bg-slate-950/60">
+      <div class="p-3.5 border-t border-slate-800 bg-slate-950/70">
         <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3 overflow-hidden">
-            <div class="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-blue-500/20">
-              {{ (session.get('user_name', 'Admin') or 'A')[0]|upper }}
+          <a href="{{ url_for('admin_profil') }}" class="flex items-center space-x-3 overflow-hidden group flex-1" title="Buka Profil Saya">
+            {% if logged_user.foto %}
+            <img src="{{ logged_user.foto if logged_user.foto.startswith('http') else url_for('static', filename=logged_user.foto) }}" alt="{{ logged_user.name }}" class="w-9 h-9 shrink-0 rounded-xl object-cover border border-slate-700 shadow-md">
+            {% else %}
+            <div class="w-9 h-9 shrink-0 rounded-xl {% if logged_user.is_super_admin %}bg-gradient-to-tr from-amber-500 to-rose-600 shadow-amber-500/20{% else %}bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-blue-500/20{% endif %} flex items-center justify-center text-white font-bold text-xs shadow-md">
+              {{ (logged_user.name or 'A')[0]|upper }}
             </div>
+            {% endif %}
             <div class="overflow-hidden">
-              <p class="text-xs font-bold text-white truncate">{{ session.get('user_name', 'Administrator Utama') }}</p>
-              <p class="text-[10px] text-blue-400 font-medium truncate flex items-center gap-1">
-                <i class="fa-solid fa-shield-halved text-[9px]"></i>
-                <span>Admin Sistem</span>
+              <p class="text-xs font-bold text-white truncate group-hover:text-blue-300 transition">{{ logged_user.name }}</p>
+              <p class="text-[10px] font-medium truncate flex items-center gap-1.5 mt-0.5">
+                {% if logged_user.is_super_admin %}
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                  <i class="fa-solid fa-crown text-[8px]"></i>
+                  <span>Super Admin</span>
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                  <i class="fa-solid fa-shield-halved text-[8px]"></i>
+                  <span>Admin Staf</span>
+                </span>
+                {% endif %}
               </p>
             </div>
-          </div>
-          <a href="{{ url_for('logout') }}" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 rounded-lg transition" title="Keluar / Logout">
+          </a>
+          <a href="{{ url_for('logout') }}" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 rounded-lg transition ml-1" title="Keluar / Logout">
             <i class="fa-solid fa-right-from-bracket text-sm"></i>
           </a>
         </div>

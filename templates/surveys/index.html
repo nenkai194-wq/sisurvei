@@ -153,12 +153,14 @@
               <span>Isi Form</span>
             </a>
 
-            <!-- Hapus Survei -->
+            {% if logged_user.is_super_admin %}
+            <!-- Hapus Survei (Khusus Super Admin) -->
             <form action="{{ url_for('survei_hapus', id=s.id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus survei ini beserta seluruh data respon yang ada?');" class="inline">
-              <button type="submit" class="p-2 text-xs text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Survei">
+              <button type="submit" class="p-2 text-xs text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" title="Hapus Survei (Khusus Super Admin)">
                 <i class="fa-solid fa-trash-can"></i>
               </button>
             </form>
+            {% endif %}
           </div>
 
         </div>

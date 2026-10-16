@@ -27,9 +27,11 @@ def get_local_ip():
     except Exception:
         return '127.0.0.1'
 
-# Konfigurasi Upload Foto Petugas
+# Konfigurasi Upload Foto Petugas & Profil Admin
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'petugas')
+UPLOAD_FOLDER_PROFIL = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'profil')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER_PROFIL, exist_ok=True)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
 
 def allowed_file(filename):
@@ -46,6 +48,46 @@ def save_uploaded_photo(file_obj, nip):
         file_obj.save(filepath)
         return f"uploads/petugas/{filename}"
     return None
+
+def save_uploaded_admin_photo(file_obj, username):
+    if not file_obj or file_obj.filename == '':
+        return None
+    if allowed_file(file_obj.filename):
+        ext = file_obj.filename.rsplit('.', 1)[1].lower()
+        clean_user = secure_filename(str(username).replace('-', '_'))
+        filename = f"admin_{clean_user}_{int(datetime.now().timestamp())}.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER_PROFIL, filename)
+        file_obj.save(filepath)
+        return f"uploads/profil/{filename}"
+    return None
+
+def log_activity(aksi, rincian=""):
+    """Mencatat log aktivitas penting ke tabel audit_logs"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        uid = session.get('user_id')
+        uname = session.get('user_name', 'System')
+        role = session.get('admin_level') or session.get('user_role', 'guest')
+        ip = request.remote_addr or '127.0.0.1'
+        cursor.execute('''
+            INSERT INTO audit_logs (user_id, user_name, role, aksi, rincian, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (uid, uname, role, aksi, rincian, ip))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[AUDIT LOG WARNING] {e}")
+
+def super_admin_required(f):
+    """Decorator khusus untuk melindungi menu khusus level Super Admin"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('user_role') != 'admin' or session.get('admin_level') != 'super_admin':
+            flash("Akses ditolak: Menu ini berstatus privat dan hanya dapat dikelola oleh level Super Admin.", "danger")
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def get_current_operator():
     conn = get_db()
@@ -81,14 +123,42 @@ def get_current_operator():
 def inject_auth_user():
     ip = get_local_ip()
     port = int(os.environ.get('PORT', 5005))
+    admin_level = session.get('admin_level', 'admin')
+    is_super = (session.get('user_role') == 'admin' and admin_level == 'super_admin')
+    
+    # Ambil pengaturan aplikasi dari DB
+    app_meta = {
+        'nama_aplikasi': 'SiSurvei - Portal Manajemen Survei Terpadu',
+        'nama_instansi': 'Lembaga Riset & Pelayanan Publik',
+        'email_resmi': 'layanan@survei.go.id',
+        'telepon_resmi': '021-8889991',
+        'alamat_kantor': 'Gedung Informasi & Statistik Lt. 4, Jakarta',
+        'zona_waktu': 'Asia/Jakarta (WIB)'
+    }
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT kunci, nilai FROM pengaturan")
+        for row in c.fetchall():
+            app_meta[row['kunci']] = row['nilai']
+        conn.close()
+    except Exception:
+        pass
+
     return {
         'logged_user': {
             'role': session.get('user_role'),
+            'admin_level': admin_level,
+            'is_super_admin': is_super,
             'id': session.get('user_id'),
             'name': session.get('user_name'),
             'nip': session.get('nip'),
-            'username': session.get('username')
+            'username': session.get('username'),
+            'email': session.get('email'),
+            'no_hp': session.get('user_hp'),
+            'foto': session.get('user_foto')
         },
+        'app_settings': app_meta,
         'network_ip': ip,
         'network_port': port,
         'android_access_url': f"http://{ip}:{port}"
@@ -155,13 +225,23 @@ def login():
             conn.close()
             
             if user and check_password_hash(user['password_hash'], password):
+                # Validasi status akun
+                if 'status' in user.keys() and user['status'] == 'Nonaktif':
+                    flash("Akun Administrator ini berstatus Nonaktif. Silakan hubungi Super Admin.", "danger")
+                    return render_template('auth/login.html')
+
                 session.clear()
                 session['user_role'] = 'admin'
+                session['admin_level'] = user['role'] if user['role'] in ('super_admin', 'admin') else 'admin'
                 session['user_id'] = user['id']
                 session['user_name'] = user['nama']
                 session['username'] = user['username']
                 session['email'] = user['email']
-                flash(f"Selamat datang kembali, {user['nama']}!", "success")
+                session['user_hp'] = user['no_hp'] if 'no_hp' in user.keys() else ''
+                session['user_foto'] = user['foto'] if 'foto' in user.keys() else None
+                
+                log_activity("Login Administrator", f"Pengguna {user['nama']} ({session['admin_level']}) berhasil login")
+                flash(f"Selamat datang kembali, {user['nama']}! Anda aktif sebagai {session['admin_level'].replace('_', ' ').title()}.", "success")
                 if next_url and next_url.startswith('/') and not next_url.startswith('/login'):
                     return redirect(next_url)
                 return redirect(url_for('dashboard'))
@@ -530,6 +610,9 @@ def survei_edit(id):
 
 @app.route('/survei/<int:id>/hapus', methods=['POST'])
 def survei_hapus(id):
+    if session.get('admin_level') != 'super_admin':
+        flash("Akses ditolak: Hanya Super Admin yang berwenang menghapus kegiatan survei secara permanen.", "danger")
+        return redirect(url_for('survei_index'))
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT judul FROM survei WHERE id = ?", (id,))
@@ -538,6 +621,7 @@ def survei_hapus(id):
         judul = s['judul']
         cursor.execute("DELETE FROM survei WHERE id = ?", (id,))
         conn.commit()
+        log_activity("Hapus Survei", f"Super Admin menghapus survei: '{judul}' (ID #{id})")
         flash(f"Survei '{judul}' beserta seluruh pertanyaan dan responsnya berhasil dihapus.", "success")
     conn.close()
     return redirect(url_for('survei_index'))
@@ -1460,11 +1544,15 @@ def respons_index():
 
 @app.route('/respons/<int:id>/hapus', methods=['POST'])
 def respons_hapus(id):
+    if session.get('admin_level') != 'super_admin':
+        flash("Akses ditolak: Hanya Super Admin yang berwenang menghapus lembar data responden.", "danger")
+        return redirect(request.referrer or url_for('respons_index'))
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM responden WHERE id = ?", (id,))
     conn.commit()
     conn.close()
+    log_activity("Hapus Respon", f"Super Admin menghapus data responden ID #{id}")
     flash("Data responden berhasil dihapus.", "success")
     return redirect(request.referrer or url_for('respons_index'))
 
@@ -1754,6 +1842,346 @@ def operator_survei_sukses(survei_id):
         persen_sampel=persen_sampel,
         resp_id=resp_id
     )
+
+# ==========================================
+# 10. MODUL MANAJEMEN PROFIL & HAK AKSES ADMIN
+# ==========================================
+
+@app.route('/admin/profil', methods=['GET', 'POST'])
+def admin_profil():
+    if session.get('user_role') != 'admin':
+        flash("Hanya akun Administrator yang dapat mengakses halaman ini.", "danger")
+        return redirect(url_for('dashboard'))
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    user_id = session.get('user_id')
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'update_profile':
+            nama = request.form.get('nama', '').strip()
+            email = request.form.get('email', '').strip()
+            no_hp = request.form.get('no_hp', '').strip()
+            foto_type = request.form.get('foto_type', 'keep')
+            
+            if not nama or not email:
+                flash("Nama lengkap dan email tidak boleh kosong.", "danger")
+                conn.close()
+                return redirect(url_for('admin_profil'))
+                
+            # Cek duplikasi email dengan user lain
+            cursor.execute("SELECT id FROM users WHERE email = ? AND id != ?", (email, user_id))
+            if cursor.fetchone():
+                flash("Email tersebut sudah digunakan oleh akun lain.", "danger")
+                conn.close()
+                return redirect(url_for('admin_profil'))
+                
+            new_foto = None
+            if foto_type == 'upload' and 'foto_file' in request.files:
+                uploaded = save_uploaded_admin_photo(request.files['foto_file'], session.get('username'))
+                if uploaded:
+                    new_foto = uploaded
+            elif foto_type == 'url':
+                url_val = request.form.get('foto_url', '').strip()
+                if url_val:
+                    new_foto = url_val
+            elif foto_type == 'remove':
+                new_foto = ''
+                
+            if new_foto is not None:
+                cursor.execute('''
+                    UPDATE users 
+                    SET nama = ?, email = ?, no_hp = ?, foto = ?
+                    WHERE id = ?
+                ''', (nama, email, no_hp, new_foto if new_foto != '' else None, user_id))
+                session['user_foto'] = new_foto if new_foto != '' else None
+            else:
+                cursor.execute('''
+                    UPDATE users 
+                    SET nama = ?, email = ?, no_hp = ?
+                    WHERE id = ?
+                ''', (nama, email, no_hp, user_id))
+                
+            conn.commit()
+            session['user_name'] = nama
+            session['email'] = email
+            session['user_hp'] = no_hp
+            
+            log_activity("Update Profil Pribadi", f"Admin '{session.get('username')}' memperbarui identitas dirinya")
+            flash("Profil Anda berhasil diperbarui dengan sukses!", "success")
+            conn.close()
+            return redirect(url_for('admin_profil'))
+            
+        elif action == 'change_password':
+            current_pwd = request.form.get('current_password', '')
+            new_pwd = request.form.get('new_password', '')
+            confirm_pwd = request.form.get('confirm_password', '')
+            
+            cursor.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,))
+            user_row = cursor.fetchone()
+            
+            if not user_row or not check_password_hash(user_row['password_hash'], current_pwd):
+                flash("Kata sandi saat ini yang Anda masukkan salah!", "danger")
+                conn.close()
+                return redirect(url_for('admin_profil'))
+                
+            if len(new_pwd) < 6:
+                flash("Kata sandi baru minimal harus 6 karakter.", "danger")
+                conn.close()
+                return redirect(url_for('admin_profil'))
+                
+            if new_pwd != confirm_pwd:
+                flash("Konfirmasi kata sandi baru tidak cocok. Silakan ulangi.", "danger")
+                conn.close()
+                return redirect(url_for('admin_profil'))
+                
+            cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (generate_password_hash(new_pwd), user_id))
+            conn.commit()
+            
+            log_activity("Ganti Kata Sandi", f"Admin '{session.get('username')}' memperbarui kata sandi pribadinya")
+            flash("Kata sandi Anda berhasil diperbarui dengan aman!", "success")
+            conn.close()
+            return redirect(url_for('admin_profil'))
+            
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    
+    # Statistik untuk widget profil
+    cursor.execute("SELECT COUNT(*) FROM survei")
+    total_survei = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM petugas WHERE status = 'Aktif'")
+    total_petugas = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM responden")
+    total_respon = cursor.fetchone()[0]
+    
+    conn.close()
+    return render_template(
+        'admin/profil.html',
+        admin=user,
+        total_survei=total_survei,
+        total_petugas=total_petugas,
+        total_respon=total_respon
+    )
+
+@app.route('/admin/users', methods=['GET', 'POST'])
+@super_admin_required
+def admin_users():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip().lower()
+        nama = request.form.get('nama', '').strip()
+        email = request.form.get('email', '').strip()
+        no_hp = request.form.get('no_hp', '').strip()
+        role = request.form.get('role', 'admin').strip()
+        status = request.form.get('status', 'Aktif').strip()
+        password = request.form.get('password', '').strip()
+        
+        if not username or not nama or not password:
+            flash("Username, nama lengkap, dan kata sandi wajib diisi.", "danger")
+            conn.close()
+            return redirect(url_for('admin_users'))
+            
+        cursor.execute("SELECT id FROM users WHERE username = ? OR email = ?", (username, email))
+        if cursor.fetchone():
+            flash(f"Username '{username}' atau email '{email}' sudah terdaftar dalam sistem.", "danger")
+            conn.close()
+            return redirect(url_for('admin_users'))
+            
+        if role not in ('super_admin', 'admin'):
+            role = 'admin'
+            
+        pwd_hash = generate_password_hash(password)
+        cursor.execute('''
+            INSERT INTO users (username, password_hash, nama, email, no_hp, role, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (username, pwd_hash, nama, email, no_hp, role, status))
+        conn.commit()
+        
+        role_label = 'Super Admin' if role == 'super_admin' else 'Admin Staf'
+        log_activity("Tambah Admin", f"Super Admin mendaftarkan akun baru: {nama} ({username}) dengan peran {role_label}")
+        flash(f"Akun baru '{nama}' berhasil didaftarkan sebagai {role_label}!", "success")
+        conn.close()
+        return redirect(url_for('admin_users'))
+        
+    cursor.execute("SELECT * FROM users ORDER BY CASE WHEN role = 'super_admin' THEN 1 ELSE 2 END, id ASC")
+    users = cursor.fetchall()
+    
+    total_admin = len(users)
+    total_super = sum(1 for u in users if u['role'] == 'super_admin')
+    total_staf = sum(1 for u in users if u['role'] == 'admin')
+    total_aktif = sum(1 for u in users if u['status'] == 'Aktif')
+    
+    conn.close()
+    return render_template(
+        'admin/users.html',
+        users=users,
+        total_admin=total_admin,
+        total_super=total_super,
+        total_staf=total_staf,
+        total_aktif=total_aktif
+    )
+
+@app.route('/admin/users/<int:id>/edit', methods=['POST'])
+@super_admin_required
+def admin_users_edit(id):
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
+    target = cursor.fetchone()
+    if not target:
+        conn.close()
+        flash("Pengguna admin tidak ditemukan.", "danger")
+        return redirect(url_for('admin_users'))
+        
+    nama = request.form.get('nama', '').strip()
+    email = request.form.get('email', '').strip()
+    no_hp = request.form.get('no_hp', '').strip()
+    role = request.form.get('role', target['role']).strip()
+    status = request.form.get('status', target['status']).strip()
+    
+    # Proteksi: Super admin yang sedang login tidak dapat men-downgrade atau menonaktifkan dirinya sendiri
+    if id == session.get('user_id'):
+        role = 'super_admin'
+        status = 'Aktif'
+        
+    # Cek keunikan email
+    cursor.execute("SELECT id FROM users WHERE email = ? AND id != ?", (email, id))
+    if cursor.fetchone():
+        flash("Email sudah digunakan oleh akun admin lainnya.", "danger")
+        conn.close()
+        return redirect(url_for('admin_users'))
+        
+    cursor.execute('''
+        UPDATE users 
+        SET nama = ?, email = ?, no_hp = ?, role = ?, status = ?
+        WHERE id = ?
+    ''', (nama, email, no_hp, role, status, id))
+    conn.commit()
+    
+    log_activity("Edit Admin", f"Super Admin memperbarui data akun {target['username']} (ID #{id})")
+    flash(f"Data akun '{nama}' berhasil diperbarui.", "success")
+    conn.close()
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/<int:id>/reset-password', methods=['POST'])
+@super_admin_required
+def admin_users_reset_password(id):
+    new_pwd = request.form.get('new_password', '').strip()
+    if not new_pwd or len(new_pwd) < 6:
+        flash("Kata sandi baru minimal harus 6 karakter.", "danger")
+        return redirect(url_for('admin_users'))
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, nama FROM users WHERE id = ?", (id,))
+    target = cursor.fetchone()
+    if not target:
+        conn.close()
+        flash("Akun admin tidak ditemukan.", "danger")
+        return redirect(url_for('admin_users'))
+        
+    cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (generate_password_hash(new_pwd), id))
+    conn.commit()
+    conn.close()
+    
+    log_activity("Reset Password Admin", f"Super Admin mereset password akun '{target['username']}' (ID #{id})")
+    flash(f"Kata sandi untuk akun '{target['nama']}' berhasil direset.", "success")
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/<int:id>/hapus', methods=['POST'])
+@super_admin_required
+def admin_users_hapus(id):
+    if id == session.get('user_id'):
+        flash("Aksi ditolak: Anda tidak dapat menghapus akun Anda sendiri!", "danger")
+        return redirect(url_for('admin_users'))
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (id,))
+    target = cursor.fetchone()
+    if not target:
+        conn.close()
+        flash("Akun admin tidak ditemukan.", "danger")
+        return redirect(url_for('admin_users'))
+        
+    # Pastikan tidak menghapus Super Admin terakhir
+    if target['role'] == 'super_admin':
+        cursor.execute("SELECT COUNT(*) FROM users WHERE role = 'super_admin' AND status = 'Aktif'")
+        count_super = cursor.fetchone()[0]
+        if count_super <= 1:
+            conn.close()
+            flash("Aksi ditolak: Sistem harus memiliki minimal 1 Super Admin aktif!", "danger")
+            return redirect(url_for('admin_users'))
+            
+    cursor.execute("DELETE FROM users WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    
+    log_activity("Hapus Admin", f"Super Admin menghapus akun '{target['username']}' (ID #{id})")
+    flash(f"Akun admin '{target['nama']}' ({target['username']}) berhasil dihapus.", "success")
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/pengaturan', methods=['GET', 'POST'])
+@super_admin_required
+def admin_pengaturan():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    setting_keys = ['nama_aplikasi', 'nama_instansi', 'email_resmi', 'telepon_resmi', 'alamat_kantor', 'zona_waktu']
+    
+    if request.method == 'POST':
+        for key in setting_keys:
+            val = request.form.get(key, '').strip()
+            cursor.execute("INSERT INTO pengaturan (kunci, nilai, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(kunci) DO UPDATE SET nilai = excluded.nilai, updated_at = CURRENT_TIMESTAMP", (key, val))
+        conn.commit()
+        
+        log_activity("Pengaturan Sistem", "Super Admin memperbarui konfigurasi parameter global sistem")
+        flash("Pengaturan sistem dan identitas instansi berhasil disimpan!", "success")
+        conn.close()
+        return redirect(url_for('admin_pengaturan'))
+        
+    cursor.execute("SELECT kunci, nilai, kategori FROM pengaturan")
+    rows = cursor.fetchall()
+    settings = {r['kunci']: r['nilai'] for r in rows}
+    conn.close()
+    return render_template('admin/pengaturan.html', settings=settings)
+
+@app.route('/admin/logs')
+@super_admin_required
+def admin_logs():
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    filter_role = request.args.get('role', '').strip()
+    filter_q = request.args.get('q', '').strip()
+    
+    query = "SELECT * FROM audit_logs WHERE 1=1"
+    params = []
+    
+    if filter_role:
+        query += " AND role = ?"
+        params.append(filter_role)
+    if filter_q:
+        query += " AND (aksi LIKE ? OR rincian LIKE ? OR user_name LIKE ?)"
+        term = f"%{filter_q}%"
+        params.extend([term, term, term])
+        
+    query += " ORDER BY id DESC LIMIT 150"
+    
+    cursor.execute(query, params)
+    logs = cursor.fetchall()
+    
+    # Hitung statistik singkat
+    cursor.execute("SELECT COUNT(*) FROM audit_logs")
+    total_logs = cursor.fetchone()[0]
+    
+    conn.close()
+    return render_template('admin/logs.html', logs=logs, total_logs=total_logs, filter_role=filter_role, filter_q=filter_q)
 
 if __name__ == '__main__':
     init_db()

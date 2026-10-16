@@ -1,0 +1,404 @@
+{% extends 'base.html' %}
+
+{% block title %}Kelola Pengguna Admin - SiSurvei PRO{% endblock %}
+{% block header_title %}Manajemen Pengguna Admin{% endblock %}
+{% block header_subtitle %}Kelola daftar akun Administrator, penetapan level Super Admin vs Admin Staf, dan pengaturan akses{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- TOP KPI CARDS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Admin</p>
+        <p class="text-2xl font-bold text-slate-900 mt-1">{{ total_admin }}</p>
+      </div>
+      <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-users"></i>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Super Admin</p>
+        <p class="text-2xl font-bold text-amber-600 mt-1">{{ total_super }}</p>
+      </div>
+      <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-crown"></i>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Admin Staf</p>
+        <p class="text-2xl font-bold text-blue-600 mt-1">{{ total_staf }}</p>
+      </div>
+      <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Akun Aktif</p>
+        <p class="text-2xl font-bold text-emerald-600 mt-1">{{ total_aktif }}</p>
+      </div>
+      <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE CARD & HEADER ACTIONS -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    
+    <div class="p-5 md:p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
+      <div>
+        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-user-shield text-blue-600"></i>
+          <span>Daftar Akun Administrator Sistem</span>
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Seluruh akun yang memiliki hak akses ke panel operasional dan manajemen survei.</p>
+      </div>
+
+      <div>
+        <button onclick="document.getElementById('modalTambahAdmin').classList.remove('hidden')" class="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition">
+          <i class="fa-solid fa-user-plus"></i>
+          <span>Tambah Admin Baru</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-600">
+        <thead class="bg-slate-100/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+          <tr>
+            <th class="py-3.5 px-4 md:px-6">Profil Administrator</th>
+            <th class="py-3.5 px-4">Level / Peran</th>
+            <th class="py-3.5 px-4">Kontak (Email & HP)</th>
+            <th class="py-3.5 px-4">Status</th>
+            <th class="py-3.5 px-4">Dibuat Pada</th>
+            <th class="py-3.5 px-4 md:px-6 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for u in users %}
+          <tr class="hover:bg-slate-50/80 transition">
+            
+            <!-- Profil & Nama -->
+            <td class="py-3.5 px-4 md:px-6">
+              <div class="flex items-center space-x-3">
+                {% if u.foto %}
+                <img src="{{ u.foto if u.foto.startswith('http') else url_for('static', filename=u.foto) }}" alt="{{ u.nama }}" class="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm">
+                {% else %}
+                <div class="w-10 h-10 rounded-xl {% if u.role == 'super_admin' %}bg-gradient-to-tr from-amber-500 to-rose-600{% else %}bg-gradient-to-tr from-blue-600 to-indigo-600{% endif %} flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                  {{ (u.nama or 'A')[0]|upper }}
+                </div>
+                {% endif %}
+                <div>
+                  <div class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                    <span>{{ u.nama }}</span>
+                    {% if u.id == session.get('user_id') %}
+                    <span class="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">(Anda)</span>
+                    {% endif %}
+                  </div>
+                  <span class="font-mono text-slate-400 text-[11px]">@{{ u.username }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Role Badge -->
+            <td class="py-3.5 px-4">
+              {% if u.role == 'super_admin' %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-800 border border-amber-300">
+                <i class="fa-solid fa-crown text-[9px] text-amber-500"></i>
+                <span>Super Admin</span>
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                <i class="fa-solid fa-shield-halved text-[9px] text-blue-500"></i>
+                <span>Admin Staf</span>
+              </span>
+              {% endif %}
+            </td>
+
+            <!-- Kontak -->
+            <td class="py-3.5 px-4">
+              <div class="space-y-0.5">
+                <p class="text-slate-800 font-medium flex items-center gap-1.5">
+                  <i class="fa-solid fa-envelope text-slate-400 text-[10px]"></i>
+                  <span>{{ u.email or '-' }}</span>
+                </p>
+                {% if u.no_hp %}
+                <p class="text-slate-500 flex items-center gap-1.5">
+                  <i class="fa-brands fa-whatsapp text-emerald-500 text-[11px]"></i>
+                  <span>{{ u.no_hp }}</span>
+                </p>
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- Status -->
+            <td class="py-3.5 px-4">
+              {% if u.status == 'Aktif' %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Aktif</span>
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <span>Nonaktif</span>
+              </span>
+              {% endif %}
+            </td>
+
+            <!-- Tanggal Dibuat -->
+            <td class="py-3.5 px-4 text-slate-400 text-[11px]">
+              {{ u.created_at[:10] if u.created_at else '-' }}
+            </td>
+
+            <!-- Aksi Buttons -->
+            <td class="py-3.5 px-4 md:px-6 text-center">
+              <div class="flex items-center justify-center space-x-2">
+                <!-- Edit Button -->
+                <button onclick="bukaModalEditAdmin({{ u.id }}, '{{ u.nama }}', '{{ u.username }}', '{{ u.email or '' }}', '{{ u.no_hp or '' }}', '{{ u.role }}', '{{ u.status }}')" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition" title="Edit Akun Admin">
+                  <i class="fa-solid fa-pen-to-square text-sm"></i>
+                </button>
+
+                <!-- Reset Password Button -->
+                <button onclick="bukaModalResetPwd({{ u.id }}, '{{ u.nama }}', '{{ u.username }}')" class="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition" title="Reset Kata Sandi">
+                  <i class="fa-solid fa-key text-sm"></i>
+                </button>
+
+                <!-- Hapus Button -->
+                {% if u.id == session.get('user_id') %}
+                <span class="p-1.5 text-slate-300 cursor-not-allowed" title="Anda tidak dapat menghapus akun Anda sendiri">
+                  <i class="fa-solid fa-trash-can text-sm"></i>
+                </span>
+                {% else %}
+                <button onclick="bukaModalHapusAdmin({{ u.id }}, '{{ u.nama }}', '{{ u.username }}')" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition" title="Hapus Akun Admin">
+                  <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MODAL 1: TAMBAH ADMIN BARU -->
+<div id="modalTambahAdmin" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+  <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+      <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+        <i class="fa-solid fa-user-plus text-blue-600"></i>
+        <span>Tambah Pengguna Admin Baru</span>
+      </h3>
+      <button onclick="document.getElementById('modalTambahAdmin').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin_users') }}" class="p-5 space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Username (Login)</label>
+          <input type="text" name="username" required placeholder="misal: ahmad_admin" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Kata Sandi Awal</label>
+          <input type="password" name="password" required minlength="6" placeholder="Minimal 6 karakter" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Nama Lengkap</label>
+        <input type="text" name="nama" required placeholder="Nama lengkap beserta gelar jika ada" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Email Resmi</label>
+          <input type="email" name="email" required placeholder="admin@survei.go.id" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Nomor WhatsApp / HP</label>
+          <input type="text" name="no_hp" placeholder="08xxxxxxxxxx" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Level / Hak Akses</label>
+          <select name="role" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+            <option value="admin" selected>🛡️ Admin Staf (Operasional)</option>
+            <option value="super_admin">👑 Super Admin (Akses Penuh)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Status Keaktifan</label>
+          <select name="status" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+            <option value="Aktif" selected>Aktif</option>
+            <option value="Nonaktif">Nonaktif</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+        <button type="button" onclick="document.getElementById('modalTambahAdmin').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition">Daftarkan Admin</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 2: EDIT PENGGUNA ADMIN -->
+<div id="modalEditAdmin" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+  <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+      <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+        <i class="fa-solid fa-user-pen text-blue-600"></i>
+        <span>Edit Pengguna Admin: <span id="editAdminTitle" class="text-blue-600 font-mono"></span></span>
+      </h3>
+      <button onclick="document.getElementById('modalEditAdmin').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+    </div>
+
+    <form id="formEditAdmin" method="POST" action="" class="p-5 space-y-4">
+      <div>
+        <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Nama Lengkap</label>
+        <input type="text" id="editNama" name="nama" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Email Resmi</label>
+          <input type="email" id="editEmail" name="email" required class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Nomor WhatsApp / HP</label>
+          <input type="text" id="editHp" name="no_hp" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Level / Hak Akses</label>
+          <select id="editRole" name="role" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+            <option value="admin">🛡️ Admin Staf (Operasional)</option>
+            <option value="super_admin">👑 Super Admin (Akses Penuh)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Status Keaktifan</label>
+          <select id="editStatus" name="status" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+            <option value="Aktif">Aktif</option>
+            <option value="Nonaktif">Nonaktif</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+        <button type="button" onclick="document.getElementById('modalEditAdmin').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 3: RESET PASSWORD ADMIN -->
+<div id="modalResetPwd" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+  <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-amber-50/50">
+      <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+        <i class="fa-solid fa-key text-amber-600"></i>
+        <span>Reset Kata Sandi Admin</span>
+      </h3>
+      <button onclick="document.getElementById('modalResetPwd').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+    </div>
+
+    <form id="formResetPwd" method="POST" action="" class="p-5 space-y-4">
+      <p class="text-xs text-slate-600">
+        Anda akan mengatur ulang kata sandi untuk akun <strong id="resetTargetNama" class="text-slate-900 font-bold"></strong> (<span id="resetTargetUser" class="font-mono text-slate-500"></span>).
+      </p>
+
+      <div>
+        <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Kata Sandi Baru</label>
+        <input type="password" name="new_password" required minlength="6" placeholder="Minimal 6 karakter" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none">
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+        <button type="button" onclick="document.getElementById('modalResetPwd').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md shadow-amber-500/20 transition">Reset Kata Sandi</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 4: KONFIRMASI HAPUS ADMIN -->
+<div id="modalHapusAdmin" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+  <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+    <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
+      <h3 class="text-sm font-bold text-rose-900 flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+        <span>Konfirmasi Hapus Akun Admin</span>
+      </h3>
+      <button onclick="document.getElementById('modalHapusAdmin').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
+        <i class="fa-solid fa-xmark text-base"></i>
+      </button>
+    </div>
+
+    <form id="formHapusAdmin" method="POST" action="" class="p-5 space-y-4">
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Apakah Anda yakin ingin menghapus akun admin <strong id="hapusTargetNama" class="text-slate-900"></strong> (<span id="hapusTargetUser" class="font-mono text-slate-500"></span>)?
+        <br><br>
+        <span class="text-rose-600 font-semibold">Tindakan ini permanen dan tidak dapat dibatalkan.</span>
+      </p>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+        <button type="button" onclick="document.getElementById('modalHapusAdmin').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+        <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-md shadow-rose-500/20 transition">Ya, Hapus Permanen</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function bukaModalEditAdmin(id, nama, username, email, no_hp, role, status) {
+  document.getElementById('editAdminTitle').textContent = '@' + username;
+  document.getElementById('editNama').value = nama;
+  document.getElementById('editEmail').value = email;
+  document.getElementById('editHp').value = no_hp;
+  document.getElementById('editRole').value = role;
+  document.getElementById('editStatus').value = status;
+  document.getElementById('formEditAdmin').action = '/admin/users/' + id + '/edit';
+  document.getElementById('modalEditAdmin').classList.remove('hidden');
+}
+
+function bukaModalResetPwd(id, nama, username) {
+  document.getElementById('resetTargetNama').textContent = nama;
+  document.getElementById('resetTargetUser').textContent = '@' + username;
+  document.getElementById('formResetPwd').action = '/admin/users/' + id + '/reset-password';
+  document.getElementById('modalResetPwd').classList.remove('hidden');
+}
+
+function bukaModalHapusAdmin(id, nama, username) {
+  document.getElementById('hapusTargetNama').textContent = nama;
+  document.getElementById('hapusTargetUser').textContent = '@' + username;
+  document.getElementById('formHapusAdmin').action = '/admin/users/' + id + '/hapus';
+  document.getElementById('modalHapusAdmin').classList.remove('hidden');
+}
+</script>
+{% endblock %}

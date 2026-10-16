@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Log Aktivitas Sistem - SiSurvei PRO{% endblock %}
+{% block header_title %}Log Aktivitas Sistem & Audit Trail{% endblock %}
+{% block header_subtitle %}Catatan riwayat aksi operasional, autentikasi, serta perubahan data oleh seluruh administrator{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- TOP SUMMARY & FILTERS -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex items-center space-x-3">
+      <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </div>
+      <div>
+        <h2 class="text-base font-bold text-slate-900">Riwayat Audit Trail</h2>
+        <p class="text-xs text-slate-500">Total catatan log tercatat: <strong class="text-blue-600 font-bold">{{ total_logs }}</strong> aktivitas.</p>
+      </div>
+    </div>
+
+    <!-- FILTER FORM -->
+    <form method="GET" action="{{ url_for('admin_logs') }}" class="flex flex-wrap items-center gap-2.5">
+      <div class="relative">
+        <input type="text" name="q" value="{{ filter_q or '' }}" placeholder="Cari aksi atau nama..." class="pl-9 pr-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none w-48 md:w-60">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+      </div>
+
+      <select name="role" class="px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+        <option value="">Semua Peran</option>
+        <option value="super_admin" {% if filter_role == 'super_admin' %}selected{% endif %}>Super Admin</option>
+        <option value="admin" {% if filter_role == 'admin' %}selected{% endif %}>Admin Staf</option>
+      </select>
+
+      <button type="submit" class="px-3.5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition">
+        Filter
+      </button>
+
+      {% if filter_q or filter_role %}
+      <a href="{{ url_for('admin_logs') }}" class="px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 rounded-xl transition">
+        Reset
+      </a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- TABLE LOGS -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-600">
+        <thead class="bg-slate-100/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+          <tr>
+            <th class="py-3.5 px-4 md:px-6">Waktu Kejadian</th>
+            <th class="py-3.5 px-4">Pengguna & Peran</th>
+            <th class="py-3.5 px-4">Jenis Aksi</th>
+            <th class="py-3.5 px-4">Rincian Perubahan</th>
+            <th class="py-3.5 px-4 md:px-6">Alamat IP</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% if logs %}
+            {% for l in logs %}
+            <tr class="hover:bg-slate-50/80 transition">
+              <!-- Waktu -->
+              <td class="py-3.5 px-4 md:px-6 whitespace-nowrap text-slate-500 font-mono text-[11px]">
+                {{ l.created_at }}
+              </td>
+
+              <!-- Pengguna -->
+              <td class="py-3.5 px-4 whitespace-nowrap">
+                <div class="flex items-center space-x-2">
+                  <span class="font-bold text-slate-900">{{ l.user_name or 'System' }}</span>
+                  {% if l.role == 'super_admin' %}
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-50 text-amber-700 border border-amber-300">
+                    SUPER
+                  </span>
+                  {% elif l.role == 'admin' %}
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    STAF
+                  </span>
+                  {% else %}
+                  <span class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 text-slate-600">
+                    {{ l.role or '-' }}
+                  </span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <!-- Aksi -->
+              <td class="py-3.5 px-4 whitespace-nowrap">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold 
+                  {% if 'Login' in l.aksi %}bg-emerald-50 text-emerald-800 border border-emerald-200
+                  {% elif 'Hapus' in l.aksi %}bg-rose-50 text-rose-800 border border-rose-200
+                  {% elif 'Tambah' in l.aksi %}bg-blue-50 text-blue-800 border border-blue-200
+                  {% elif 'Edit' in l.aksi or 'Update' in l.aksi %}bg-indigo-50 text-indigo-800 border border-indigo-200
+                  {% else %}bg-slate-100 text-slate-800 border border-slate-200{% endif %}">
+                  <i class="fa-solid 
+                    {% if 'Login' in l.aksi %}fa-right-to-bracket
+                    {% elif 'Hapus' in l.aksi %}fa-trash-can
+                    {% elif 'Tambah' in l.aksi %}fa-circle-plus
+                    {% elif 'Edit' in l.aksi or 'Update' in l.aksi %}fa-pen-to-square
+                    {% else %}fa-circle-info{% endif %} text-[10px]"></i>
+                  <span>{{ l.aksi }}</span>
+                </span>
+              </td>
+
+              <!-- Rincian -->
+              <td class="py-3.5 px-4 text-slate-700">
+                {{ l.rincian or '-' }}
+              </td>
+
+              <!-- IP -->
+              <td class="py-3.5 px-4 md:px-6 whitespace-nowrap text-slate-400 font-mono text-[11px]">
+                {{ l.ip_address or '127.0.0.1' }}
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="py-12 text-center text-slate-400 text-xs">
+                <i class="fa-solid fa-clock-rotate-left text-3xl mb-2 text-slate-300 block"></i>
+                <span>Belum ada catatan log aktivitas yang sesuai.</span>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

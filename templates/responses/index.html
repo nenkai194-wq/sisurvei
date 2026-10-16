@@ -112,11 +112,13 @@
                 <button onclick="viewRespondentDetail({{ r.id }})" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition" title="Lihat Lembar Jawaban">
                   <i class="fa-solid fa-eye text-sm"></i>
                 </button>
+                {% if logged_user.is_super_admin %}
                 <form action="{{ url_for('respons_hapus', id=r.id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data jawaban responden ini?')" class="inline">
-                  <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus Data">
+                  <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus Data (Khusus Super Admin)">
                     <i class="fa-solid fa-trash-can text-sm"></i>
                   </button>
                 </form>
+                {% endif %}
               </div>
             </td>
           </tr>
