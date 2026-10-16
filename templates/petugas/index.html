@@ -7,31 +7,37 @@
 {% block content %}
 <div class="space-y-6">
 
-  <!-- TOP BAR: SEARCH & ACTION -->
-  <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <!-- TOP BAR: SEARCH & ACTION (MODERN SLATE BACKDROP) -->
+  <div class="bg-gradient-to-r from-slate-100/90 via-slate-50 to-slate-100/90 p-5 rounded-2xl border border-slate-300/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
     
     <!-- Filter -->
     <form method="GET" action="{{ url_for('petugas_index') }}" class="flex flex-wrap items-center gap-3 flex-1">
       <div class="relative min-w-[240px] flex-1">
         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-        <input type="text" name="q" value="{{ filter_q }}" placeholder="Cari nama petugas, NIP, wilayah..." class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <input type="text" name="q" value="{{ filter_q }}" placeholder="Cari nama petugas, NIP, wilayah..." class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-2xs transition">
       </div>
 
-      <select name="status" onchange="this.form.submit()" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+      <select name="status" onchange="this.form.submit()" class="px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white shadow-2xs cursor-pointer">
         <option value="">Semua Status</option>
         <option value="Aktif" {% if filter_status == 'Aktif' %}selected{% endif %}>Aktif</option>
         <option value="Nonaktif" {% if filter_status == 'Nonaktif' %}selected{% endif %}>Nonaktif</option>
       </select>
 
-      <button type="submit" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Filter</button>
+      <button type="submit" class="px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-200/80 hover:bg-slate-300 rounded-xl border border-slate-300 transition shadow-2xs">
+        <i class="fa-solid fa-filter text-[11px] mr-1 text-slate-500"></i>
+        <span>Filter</span>
+      </button>
+
       {% if filter_q or filter_status %}
-        <a href="{{ url_for('petugas_index') }}" class="text-xs text-rose-600 hover:underline">Reset</a>
+        <a href="{{ url_for('petugas_index') }}" class="text-xs text-rose-600 hover:text-rose-800 font-bold hover:underline transition">
+          <i class="fa-solid fa-arrow-rotate-left mr-1"></i>Reset
+        </a>
       {% endif %}
     </form>
 
     <!-- Tombol Tambah Petugas -->
     <div>
-      <button onclick="document.getElementById('modalTambahPetugas').classList.remove('hidden')" class="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-md shadow-blue-500/20 transition">
+      <button onclick="document.getElementById('modalTambahPetugas').classList.remove('hidden')" class="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-md shadow-blue-500/20 hover:shadow-lg transition">
         <i class="fa-solid fa-user-plus"></i>
         <span>Tambah Petugas Baru</span>
       </button>
@@ -42,83 +48,104 @@
   <!-- PETUGAS CARDS GRID -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for p in petugas_list %}
-    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden">
+    {% set ribbon_colors = [
+      'from-blue-600 via-indigo-600 to-sky-500',
+      'from-slate-700 via-slate-800 to-zinc-900',
+      'from-teal-600 via-emerald-600 to-cyan-500',
+      'from-violet-600 via-purple-600 to-indigo-600'
+    ] %}
+    {% set current_ribbon = ribbon_colors[loop.index0 % 4] %}
+
+    <div class="bg-slate-50 border border-slate-200/90 rounded-2xl shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden group">
       
-      <div class="p-6">
-        <div class="flex items-start justify-between gap-3 mb-4">
-          <div class="flex items-center gap-3">
+      <!-- Top Colored Ribbon Accent -->
+      <div class="h-1.5 w-full bg-gradient-to-r {{ current_ribbon }}"></div>
+
+      <div>
+        <!-- Card Header (Avatar + Name + Status) -->
+        <div class="p-5 bg-gradient-to-b from-slate-100/90 to-slate-50/60 border-b border-slate-200/70 flex items-start justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
             {% if p.foto %}
-              <img src="{{ p.foto if p.foto.startswith('http') else url_for('static', filename=p.foto) }}" alt="{{ p.nama }}" class="w-12 h-12 rounded-2xl object-cover border-2 border-blue-400 shadow-sm">
+              <img src="{{ p.foto if p.foto.startswith('http') else url_for('static', filename=p.foto) }}" alt="{{ p.nama }}" class="w-13 h-13 rounded-2xl object-cover ring-2 ring-slate-300/80 shadow-sm shrink-0">
             {% else %}
-              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-blue-500/20">
+              <div class="w-13 h-13 rounded-2xl bg-gradient-to-tr {{ current_ribbon }} text-white font-extrabold text-base flex items-center justify-center shadow-sm shrink-0">
                 {{ p.nama[0]|upper }}
               </div>
             {% endif %}
-            <div>
-              <h3 class="text-sm font-bold text-slate-900 leading-snug">
-                <a href="{{ url_for('petugas_detail', id=p.id) }}" class="hover:text-blue-600 transition">{{ p.nama }}</a>
+            <div class="min-w-0">
+              <h3 class="text-sm font-extrabold text-slate-900 leading-snug truncate group-hover:text-blue-600 transition-colors">
+                <a href="{{ url_for('petugas_detail', id=p.id) }}">{{ p.nama }}</a>
               </h3>
-              <p class="font-mono text-xs text-blue-600 font-semibold">{{ p.nip }}</p>
+              <span class="inline-block font-mono text-[11px] font-bold text-slate-700 bg-slate-200/80 px-2 py-0.5 rounded border border-slate-300/70 mt-1 shadow-2xs">{{ p.nip }}</span>
             </div>
           </div>
 
-          <span class="px-2 py-0.5 text-[10px] font-bold rounded-full {% if p.status == 'Aktif' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-700{% endif %}">
+          <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full border shrink-0 {% if p.status == 'Aktif' %}bg-emerald-100 text-emerald-800 border-emerald-300/70{% else %}bg-slate-200 text-slate-700 border-slate-300{% endif %}">
             {{ p.status }}
           </span>
         </div>
 
-        <div class="space-y-2 text-xs text-slate-600">
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-briefcase w-4 text-slate-400"></i>
-            <span class="font-medium text-slate-800">{{ p.jabatan or 'Petugas Lapangan' }}</span>
+        <!-- Detail Information Box (Abu-Abu Kontras) -->
+        <div class="m-4 p-3.5 bg-slate-100/80 rounded-xl border border-slate-200/80 space-y-2 text-xs shadow-2xs">
+          <div class="flex items-center gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-slate-200/90 text-slate-600 flex items-center justify-center shrink-0 text-[11px]">
+              <i class="fa-solid fa-briefcase"></i>
+            </div>
+            <span class="font-bold text-slate-800 truncate">{{ p.jabatan or 'Petugas Lapangan' }}</span>
           </div>
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-location-dot w-4 text-slate-400"></i>
-            <span>{{ p.wilayah or '-' }}</span>
+          <div class="flex items-center gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-slate-200/90 text-slate-600 flex items-center justify-center shrink-0 text-[11px]">
+              <i class="fa-solid fa-location-dot"></i>
+            </div>
+            <span class="text-slate-600 truncate">{{ p.wilayah or '-' }}</span>
           </div>
-          <div class="flex items-center gap-2">
-            <i class="fa-solid fa-phone w-4 text-slate-400"></i>
-            <span>{{ p.no_hp or '-' }}</span>
+          <div class="flex items-center gap-2.5">
+            <div class="w-6 h-6 rounded-lg bg-slate-200/90 text-slate-600 flex items-center justify-center shrink-0 text-[11px]">
+              <i class="fa-solid fa-phone"></i>
+            </div>
+            <span class="text-slate-600 font-mono">{{ p.no_hp or '-' }}</span>
           </div>
-          <div class="flex items-center gap-2 truncate">
-            <i class="fa-solid fa-envelope w-4 text-slate-400"></i>
-            <span class="truncate">{{ p.email or '-' }}</span>
+          <div class="flex items-center gap-2.5 truncate">
+            <div class="w-6 h-6 rounded-lg bg-slate-200/90 text-slate-600 flex items-center justify-center shrink-0 text-[11px]">
+              <i class="fa-solid fa-envelope"></i>
+            </div>
+            <span class="text-slate-600 truncate">{{ p.email or '-' }}</span>
           </div>
         </div>
 
-        <!-- Metric Badges -->
-        <div class="grid grid-cols-2 gap-2 mt-5 p-3 bg-slate-50 rounded-xl text-center text-xs">
-          <div>
-            <span class="text-[10px] uppercase font-bold text-slate-400 block">Survei Ditugaskan</span>
-            <span class="text-base font-extrabold text-slate-800">{{ p.total_survei_assigned }} Kegiatan</span>
+        <!-- Metric Badges Box (Abu-Abu Terstruktur) -->
+        <div class="grid grid-cols-2 gap-0 mx-4 mb-4 p-3 bg-slate-200/70 border border-slate-300/80 rounded-xl text-center divide-x divide-slate-300 shadow-2xs">
+          <div class="px-2">
+            <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Survei Tugas</span>
+            <span class="text-sm font-extrabold text-slate-900 block mt-0.5">{{ p.total_survei_assigned }} Kegiatan</span>
           </div>
-          <div>
-            <span class="text-[10px] uppercase font-bold text-slate-400 block">Respon Dikumpulkan</span>
-            <span class="text-base font-extrabold text-blue-600">{{ p.total_respon_diinput }} Responden</span>
+          <div class="px-2">
+            <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Respon Masuk</span>
+            <span class="text-sm font-extrabold text-blue-700 bg-blue-50/90 px-2 py-0.5 rounded-md border border-blue-200/60 inline-block mt-0.5">{{ p.total_respon_diinput }} Data</span>
           </div>
         </div>
       </div>
 
-      <!-- Action Footer -->
-      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
-        <div class="flex items-center gap-2">
-          <a href="{{ url_for('petugas_detail', id=p.id) }}" class="text-xs font-bold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1">
+      <!-- Action Footer (Abu-Abu Elegan) -->
+      <div class="px-5 py-3.5 bg-slate-100/90 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex items-center gap-1.5">
+          <a href="{{ url_for('petugas_detail', id=p.id) }}" class="text-xs font-bold text-blue-700 bg-white hover:bg-blue-50 border border-slate-300 hover:border-blue-300 px-2.5 py-1.5 rounded-lg shadow-2xs transition inline-flex items-center gap-1">
             <span>Profil</span>
             <i class="fa-solid fa-chevron-right text-[10px]"></i>
           </a>
-          <a href="{{ url_for('operator_switch', id=p.id) }}" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition" title="Masuk ke portal operator sebagai petugas ini">
+          <a href="{{ url_for('operator_switch', id=p.id) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300/80 rounded-lg shadow-2xs transition" title="Masuk ke portal operator sebagai petugas ini">
             <i class="fa-solid fa-right-to-bracket text-[10px]"></i>
             <span>Portal Operator</span>
           </a>
         </div>
 
         <div class="flex items-center gap-1">
-          <button onclick='openEditPetugasModal({{ p|tojson }})' class="p-2 text-xs text-slate-500 hover:text-blue-600 hover:bg-white rounded-lg transition" title="Edit Data Petugas">
+          <button onclick='openEditPetugasModal({{ p|tojson }})' class="p-2 text-xs text-slate-600 bg-white hover:bg-blue-50 hover:text-blue-600 border border-slate-300 rounded-lg shadow-2xs transition" title="Edit Data Petugas">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
           
           <form action="{{ url_for('petugas_hapus', id=p.id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus petugas ini? Data responden yang pernah diinput akan tetap tersimpan.')" class="inline">
-            <button type="submit" class="p-2 text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus Petugas">
+            <button type="submit" class="p-2 text-xs text-slate-400 bg-white hover:bg-rose-50 hover:text-rose-600 border border-slate-300 rounded-lg shadow-2xs transition" title="Hapus Petugas">
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </form>
