@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% block title %}Pengelolaan Petugas Survei - SiSurvei{% endblock %}
+{% block header_title %}Pengelolaan Data Petugas Survei{% endblock %}
+{% block header_subtitle %}Kelola daftar petugas lapangan (enumerator), koordinator wilayah, dan status keaktifan{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- TOP BAR: SEARCH & ACTION -->
+  <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    
+    <!-- Filter -->
+    <form method="GET" action="{{ url_for('petugas_index') }}" class="flex flex-wrap items-center gap-3 flex-1">
+      <div class="relative min-w-[240px] flex-1">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input type="text" name="q" value="{{ filter_q }}" placeholder="Cari nama petugas, NIP, wilayah..." class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+
+      <select name="status" onchange="this.form.submit()" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+        <option value="">Semua Status</option>
+        <option value="Aktif" {% if filter_status == 'Aktif' %}selected{% endif %}>Aktif</option>
+        <option value="Nonaktif" {% if filter_status == 'Nonaktif' %}selected{% endif %}>Nonaktif</option>
+      </select>
+
+      <button type="submit" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Filter</button>
+      {% if filter_q or filter_status %}
+        <a href="{{ url_for('petugas_index') }}" class="text-xs text-rose-600 hover:underline">Reset</a>
+      {% endif %}
+    </form>
+
+    <!-- Tombol Tambah Petugas -->
+    <div>
+      <button onclick="document.getElementById('modalTambahPetugas').classList.remove('hidden')" class="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-md shadow-blue-500/20 transition">
+        <i class="fa-solid fa-user-plus"></i>
+        <span>Tambah Petugas Baru</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- PETUGAS CARDS GRID -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for p in petugas_list %}
+    <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden">
+      
+      <div class="p-6">
+        <div class="flex items-start justify-between gap-3 mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-blue-500/20">
+              {{ p.nama[0]|upper }}
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 leading-snug">
+                <a href="{{ url_for('petugas_detail', id=p.id) }}" class="hover:text-blue-600 transition">{{ p.nama }}</a>
+              </h3>
+              <p class="font-mono text-xs text-blue-600 font-semibold">{{ p.nip }}</p>
+            </div>
+          </div>
+
+          <span class="px-2 py-0.5 text-[10px] font-bold rounded-full {% if p.status == 'Aktif' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-700{% endif %}">
+            {{ p.status }}
+          </span>
+        </div>
+
+        <div class="space-y-2 text-xs text-slate-600">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-briefcase w-4 text-slate-400"></i>
+            <span class="font-medium text-slate-800">{{ p.jabatan or 'Petugas Lapangan' }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-location-dot w-4 text-slate-400"></i>
+            <span>{{ p.wilayah or '-' }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-phone w-4 text-slate-400"></i>
+            <span>{{ p.no_hp or '-' }}</span>
+          </div>
+          <div class="flex items-center gap-2 truncate">
+            <i class="fa-solid fa-envelope w-4 text-slate-400"></i>
+            <span class="truncate">{{ p.email or '-' }}</span>
+          </div>
+        </div>
+
+        <!-- Metric Badges -->
+        <div class="grid grid-cols-2 gap-2 mt-5 p-3 bg-slate-50 rounded-xl text-center text-xs">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Survei Ditugaskan</span>
+            <span class="text-base font-extrabold text-slate-800">{{ p.total_survei_assigned }} Kegiatan</span>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Respon Dikumpulkan</span>
+            <span class="text-base font-extrabold text-blue-600">{{ p.total_respon_diinput }} Responden</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <a href="{{ url_for('petugas_detail', id=p.id) }}" class="text-xs font-bold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1">
+          <span>Lihat Profil & Kinerja</span>
+          <i class="fa-solid fa-chevron-right text-[10px]"></i>
+        </a>
+
+        <div class="flex items-center gap-1">
+          <button onclick='openEditPetugasModal({{ p|tojson }})' class="p-2 text-xs text-slate-500 hover:text-blue-600 hover:bg-white rounded-lg transition" title="Edit Data Petugas">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          
+          <form action="{{ url_for('petugas_hapus', id=p.id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus petugas ini? Data responden yang pernah diinput akan tetap tersimpan.')" class="inline">
+            <button type="submit" class="p-2 text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus Petugas">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- MODAL TAMBAH PETUGAS -->
+<div id="modalTambahPetugas" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-200">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+      <h3 class="text-base font-bold text-slate-900">Tambah Data Petugas Survei Baru</h3>
+      <button onclick="document.getElementById('modalTambahPetugas').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+    <form action="{{ url_for('petugas_tambah') }}" method="POST" class="mt-4 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / ID Petugas *</label>
+          <input type="text" name="nip" required placeholder="Contoh: PTG-008" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Status Keaktifan</label>
+          <select name="status" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+            <option value="Aktif">Aktif</option>
+            <option value="Nonaktif">Nonaktif</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Petugas *</label>
+        <input type="text" name="nama" required placeholder="Nama lengkap beserta gelar" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp / HP</label>
+          <input type="text" name="no_hp" placeholder="08xxxxxxxxxx" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+          <input type="email" name="email" placeholder="nama@email.com" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Wilayah Penugasan</label>
+          <input type="text" name="wilayah" placeholder="Contoh: Jakarta Pusat" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Jabatan / Peran</label>
+          <input type="text" name="jabatan" value="Petugas Lapangan" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+        <button type="button" onclick="document.getElementById('modalTambahPetugas').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Batal</button>
+        <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow">Simpan Petugas</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL EDIT PETUGAS -->
+<div id="modalEditPetugas" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-200">
+    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+      <h3 class="text-base font-bold text-slate-900">Perbarui Data Petugas</h3>
+      <button onclick="document.getElementById('modalEditPetugas').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+    <form id="formEditPetugas" action="" method="POST" class="mt-4 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / ID Petugas *</label>
+          <input type="text" id="edit_nip" name="nip" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Status Keaktifan</label>
+          <select id="edit_status" name="status" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+            <option value="Aktif">Aktif</option>
+            <option value="Nonaktif">Nonaktif</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Petugas *</label>
+        <input type="text" id="edit_nama" name="nama" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp / HP</label>
+          <input type="text" id="edit_no_hp" name="no_hp" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Email</label>
+          <input type="email" id="edit_email" name="email" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Wilayah Penugasan</label>
+          <input type="text" id="edit_wilayah" name="wilayah" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Jabatan / Peran</label>
+          <input type="text" id="edit_jabatan" name="jabatan" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+        <button type="button" onclick="document.getElementById('modalEditPetugas').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Batal</button>
+        <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition shadow">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function openEditPetugasModal(p) {
+    document.getElementById('formEditPetugas').action = `/petugas/${p.id}/edit`;
+    document.getElementById('edit_nip').value = p.nip;
+    document.getElementById('edit_nama').value = p.nama;
+    document.getElementById('edit_email').value = p.email || '';
+    document.getElementById('edit_no_hp').value = p.no_hp || '';
+    document.getElementById('edit_wilayah').value = p.wilayah || '';
+    document.getElementById('edit_jabatan').value = p.jabatan || 'Petugas Lapangan';
+    document.getElementById('edit_status').value = p.status || 'Aktif';
+
+    document.getElementById('modalEditPetugas').classList.remove('hidden');
+  }
+</script>
+{% endblock %}

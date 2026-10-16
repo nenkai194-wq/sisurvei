@@ -1,0 +1,529 @@
+{% extends 'base.html' %}
+
+{% block title %}Desain Pertanyaan - {{ survei.judul }} - SiSurvei{% endblock %}
+{% block header_title %}Perancang Kuisioner & Pertanyaan{% endblock %}
+{% block header_subtitle %}Susun instrumen survei dengan berbagai tipe pertanyaan interaktif{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- SURVEY INFO HEADER -->
+  <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+        <a href="{{ url_for('survei_index') }}" class="text-xs text-blue-600 hover:underline font-semibold">
+          <i class="fa-solid fa-arrow-left mr-1"></i> Daftar Survei
+        </a>
+        <span class="text-slate-300">/</span>
+        <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{{ survei.kode_survei }}</span>
+        <span class="text-xs text-slate-500 font-medium">{{ survei.kategori }}</span>
+      </div>
+      <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">{{ survei.judul }}</h2>
+      <p class="text-xs text-slate-500 mt-1">Total <strong id="questionCountBadge" class="text-slate-900">{{ questions|length }}</strong> Pertanyaan tersusun</p>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <a href="{{ url_for('survei_isi', kode_survei=survei.kode_survei) }}" target="_blank" class="px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition inline-flex items-center gap-1.5">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        <span>Pratinjau Form</span>
+      </a>
+
+      <a href="{{ url_for('survei_hasil', id=survei.id) }}" class="px-3.5 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition inline-flex items-center gap-1.5">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>Dashboard Hasil</span>
+      </a>
+
+      <button onclick="openAddQuestionModal()" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md shadow-blue-500/20 inline-flex items-center gap-1.5">
+        <i class="fa-solid fa-circle-plus"></i>
+        <span>Tambah Pertanyaan</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- QUESTIONS LIST CONTAINER -->
+  <div id="questionsContainer" class="space-y-4">
+    {% if questions %}
+      {% for q in questions %}
+      <div id="q-card-{{ q.id }}" class="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:border-blue-300 transition p-5 relative group">
+        
+        <div class="flex items-start justify-between gap-4">
+          
+          <!-- Reorder & Numbering -->
+          <div class="flex items-center gap-3 shrink-0">
+            <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 font-extrabold text-xs flex items-center justify-center border border-blue-100">
+              #{{ loop.index }}
+            </div>
+
+            <!-- Up / Down buttons -->
+            <div class="flex flex-col gap-0.5">
+              <button onclick="moveQuestion({{ loop.index0 }}, -1)" class="p-1 text-[10px] text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded transition" title="Pindah ke Atas">
+                <i class="fa-solid fa-chevron-up"></i>
+              </button>
+              <button onclick="moveQuestion({{ loop.index0 }}, 1)" class="p-1 text-[10px] text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded transition" title="Pindah ke Bawah">
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Question Content -->
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+              <!-- Type Badge -->
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                {% if q.tipe_pertanyaan == 'short_text' %}
+                  <i class="fa-solid fa-font text-blue-500"></i> Teks Singkat
+                {% elif q.tipe_pertanyaan == 'long_text' %}
+                  <i class="fa-solid fa-align-left text-indigo-500"></i> Paragraf / Uraian
+                {% elif q.tipe_pertanyaan == 'radio' %}
+                  <i class="fa-regular fa-circle-dot text-emerald-500"></i> Pilihan Ganda (Single)
+                {% elif q.tipe_pertanyaan == 'checkbox' %}
+                  <i class="fa-regular fa-square-check text-purple-500"></i> Kotak Centang (Multi)
+                {% elif q.tipe_pertanyaan == 'rating' %}
+                  <i class="fa-solid fa-star text-amber-500"></i> Skala Penilaian (1-{{ q.rating_max or 5 }})
+                {% elif q.tipe_pertanyaan == 'dropdown' %}
+                  <i class="fa-solid fa-square-caret-down text-cyan-500"></i> Menu Dropdown
+                {% elif q.tipe_pertanyaan == 'number' %}
+                  <i class="fa-solid fa-hashtag text-teal-500"></i> Angka / Numerik
+                {% elif q.tipe_pertanyaan == 'date' %}
+                  <i class="fa-regular fa-calendar text-rose-500"></i> Tanggal
+                {% endif %}
+              </span>
+
+              <!-- Required Badge -->
+              {% if q.is_required %}
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">Wajib Diisi</span>
+              {% else %}
+                <span class="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-50 text-slate-400">Opsional</span>
+              {% endif %}
+            </div>
+
+            <!-- Teks Pertanyaan -->
+            <h4 class="text-sm font-bold text-slate-900 leading-snug">{{ q.teks_pertanyaan }}</h4>
+            {% if q.panduan %}
+              <p class="text-xs text-slate-500 mt-1 italic"><i class="fa-regular fa-lightbulb text-amber-500 mr-1"></i>{{ q.panduan }}</p>
+            {% endif %}
+
+            <!-- Preview of Choices / Inputs -->
+            <div class="mt-3 pt-3 border-t border-slate-100">
+              {% if q.tipe_pertanyaan in ['radio', 'checkbox', 'dropdown'] and q.pilihan_opsi_list %}
+                <div class="flex flex-wrap gap-1.5">
+                  {% for opt in q.pilihan_opsi_list %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-slate-50 text-slate-700 border border-slate-200 font-medium">
+                      {% if q.tipe_pertanyaan == 'radio' %}
+                        <span class="w-2.5 h-2.5 rounded-full border border-slate-400 inline-block"></span>
+                      {% elif q.tipe_pertanyaan == 'checkbox' %}
+                        <span class="w-2.5 h-2.5 rounded-sm border border-slate-400 inline-block"></span>
+                      {% else %}
+                        <i class="fa-solid fa-chevron-down text-[9px] text-slate-400"></i>
+                      {% endif %}
+                      {{ opt }}
+                    </span>
+                  {% endfor %}
+                </div>
+              {% elif q.tipe_pertanyaan == 'rating' %}
+                <div class="flex items-center gap-1 text-amber-400 text-sm">
+                  {% for i in range(1, (q.rating_max or 5) + 1) %}
+                    <i class="fa-solid fa-star"></i>
+                  {% endfor %}
+                  <span class="text-xs text-slate-500 ml-2 font-medium">Skala 1 s.d. {{ q.rating_max or 5 }} Bintang</span>
+                </div>
+              {% elif q.tipe_pertanyaan == 'short_text' %}
+                <div class="w-full max-w-sm px-3 py-1.5 rounded-lg border border-dashed border-slate-300 text-xs text-slate-400 bg-slate-50 font-mono">
+                  [Jawaban teks pendek...]
+                </div>
+              {% elif q.tipe_pertanyaan == 'long_text' %}
+                <div class="w-full max-w-md px-3 py-3 rounded-lg border border-dashed border-slate-300 text-xs text-slate-400 bg-slate-50 font-mono">
+                  [Jawaban paragraf/uraian panjang...]
+                </div>
+              {% elif q.tipe_pertanyaan == 'number' %}
+                <div class="w-32 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 text-xs text-slate-400 bg-slate-50 font-mono">
+                  12345
+                </div>
+              {% elif q.tipe_pertanyaan == 'date' %}
+                <div class="w-40 px-3 py-1.5 rounded-lg border border-dashed border-slate-300 text-xs text-slate-400 bg-slate-50 font-mono">
+                  DD/MM/YYYY
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-1 shrink-0">
+            <button onclick='openEditQuestionModal({{ q|tojson }})' class="p-2 text-xs text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit Pertanyaan">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button onclick="deleteQuestion({{ q.id }})" class="p-2 text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Hapus Pertanyaan">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+      {% endfor %}
+    {% else %}
+      <div id="emptyQuestionsState" class="bg-white rounded-2xl p-12 text-center border border-slate-200">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-3xl mx-auto mb-4">
+          <i class="fa-solid fa-pen-ruler"></i>
+        </div>
+        <h3 class="text-base font-bold text-slate-900 mb-1">Belum Ada Pertanyaan di Survei Ini</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mb-5">Tambahkan pertanyaan pertama Anda untuk memulai merancang kuisioner survei.</p>
+        <button onclick="openAddQuestionModal()" class="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow">
+          <i class="fa-solid fa-plus mr-1"></i> Tambah Pertanyaan Pertama
+        </button>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Bottom Add Button -->
+  <div class="pt-4 text-center">
+    <button onclick="openAddQuestionModal()" class="px-6 py-3 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition shadow-sm inline-flex items-center gap-2">
+      <i class="fa-solid fa-circle-plus text-sm"></i>
+      <span>Tambah Pertanyaan Baru</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- MODAL TAMBAH / EDIT PERTANYAAN -->
+<div id="modalQuestionForm" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+  <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+    
+    <!-- Modal Header -->
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <h3 class="text-base font-bold text-slate-900" id="modalQuestionTitle">Tambah Pertanyaan Baru</h3>
+      <button onclick="closeQuestionModal()" class="text-slate-400 hover:text-slate-600">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <form id="questionForm" onsubmit="saveQuestion(event)" class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
+      <input type="hidden" id="q_edit_id" value="">
+
+      <!-- Tipe Pertanyaan -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tipe Pertanyaan <span class="text-rose-500">*</span></label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          
+          <label class="flex flex-col items-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition text-center select-none q-type-radio" data-type="short_text">
+            <input type="radio" name="tipe_pertanyaan" value="short_text" class="hidden" checked onchange="handleTypeChange()">
+            <i class="fa-solid fa-font text-blue-600 text-lg mb-1.5"></i>
+            <span class="text-xs font-bold text-slate-800">Teks Singkat</span>
+          </label>
+
+          <label class="flex flex-col items-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition text-center select-none q-type-radio" data-type="long_text">
+            <input type="radio" name="tipe_pertanyaan" value="long_text" class="hidden" onchange="handleTypeChange()">
+            <i class="fa-solid fa-align-left text-indigo-600 text-lg mb-1.5"></i>
+            <span class="text-xs font-bold text-slate-800">Paragraf</span>
+          </label>
+
+          <label class="flex flex-col items-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition text-center select-none q-type-radio" data-type="radio">
+            <input type="radio" name="tipe_pertanyaan" value="radio" class="hidden" onchange="handleTypeChange()">
+            <i class="fa-regular fa-circle-dot text-emerald-600 text-lg mb-1.5"></i>
+            <span class="text-xs font-bold text-slate-800">Pilihan Ganda</span>
+          </label>
+
+          <label class="flex flex-col items-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition text-center select-none q-type-radio" data-type="checkbox">
+            <input type="radio" name="tipe_pertanyaan" value="checkbox" class="hidden" onchange="handleTypeChange()">
+            <i class="fa-regular fa-square-check text-purple-600 text-lg mb-1.5"></i>
+            <span class="text-xs font-bold text-slate-800">Kotak Centang</span>
+          </label>
+
+          <label class="flex flex-col items-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition text-center select-none q-type-radio" data-type="rating">
+            <input type="radio" name="tipe_pertanyaan" value="rating" class="hidden" onchange="handleTypeChange()">
+            <i class="fa-solid fa-star text-amber-500 text-lg mb-1.5"></i>
+            <span class="text-xs font-bold text-slate-800">Skala Rating</span>
+          </label>
+
+          <label class="flex flex-col items-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition text-center select-none q-type-radio" data-type="dropdown">
+            <input type="radio" name="tipe_pertanyaan" value="dropdown" class="hidden" onchange="handleTypeChange()">
+            <i class="fa-solid fa-square-caret-down text-cyan-600 text-lg mb-1.5"></i>
+            <span class="text-xs font-bold text-slate-800">Dropdown</span>
+          </label>
+
+          <label class="flex flex-col items-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition text-center select-none q-type-radio" data-type="number">
+            <input type="radio" name="tipe_pertanyaan" value="number" class="hidden" onchange="handleTypeChange()">
+            <i class="fa-solid fa-hashtag text-teal-600 text-lg mb-1.5"></i>
+            <span class="text-xs font-bold text-slate-800">Angka</span>
+          </label>
+
+          <label class="flex flex-col items-center p-3 rounded-xl border border-slate-200 cursor-pointer hover:border-blue-400 transition text-center select-none q-type-radio" data-type="date">
+            <input type="radio" name="tipe_pertanyaan" value="date" class="hidden" onchange="handleTypeChange()">
+            <i class="fa-regular fa-calendar text-rose-600 text-lg mb-1.5"></i>
+            <span class="text-xs font-bold text-slate-800">Tanggal</span>
+          </label>
+
+        </div>
+      </div>
+
+      <!-- Teks Pertanyaan -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Teks Kalimat Pertanyaan <span class="text-rose-500">*</span></label>
+        <textarea id="q_teks" rows="2" required placeholder="Contoh: Seberapa puas Anda terhadap mutu pelayanan petugas loket hari ini?" class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+      </div>
+
+      <!-- Panduan / Helper -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Panduan Pengisian (Opsional)</label>
+        <input type="text" id="q_panduan" placeholder="Contoh: Beri nilai antara 1 (Sangat Buruk) hingga 5 (Sangat Baik)" class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+
+      <!-- Options Container (for Radio, Checkbox, Dropdown) -->
+      <div id="optionsConfigSection" class="hidden p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Daftar Pilihan Jawaban</label>
+          <button type="button" onclick="addOptionInput()" class="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+            <i class="fa-solid fa-plus text-[10px]"></i> Tambah Pilihan
+          </button>
+        </div>
+
+        <div id="optionsListInputs" class="space-y-2">
+          <!-- Dynamic options here -->
+        </div>
+      </div>
+
+      <!-- Rating Scale Container (for Rating) -->
+      <div id="ratingConfigSection" class="hidden p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Skala Maksimum Bintang</label>
+        <select id="q_rating_max" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+          <option value="5" selected>1 sampai 5 Bintang (Standar)</option>
+          <option value="10">1 sampai 10 Skala Nilai</option>
+        </select>
+      </div>
+
+      <!-- Toggle Wajib Diisi -->
+      <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" id="q_is_required" checked class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+          <div>
+            <span class="text-xs font-bold text-slate-800">Pertanyaan Wajib Diisi (Mandatory)</span>
+            <p class="text-[11px] text-slate-500">Responden tidak dapat menyelesaikan survei sebelum menjawab butir ini.</p>
+          </div>
+        </label>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <button type="button" onclick="closeQuestionModal()" class="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Batal</button>
+        <button type="submit" id="btnSubmitQuestion" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow">Simpan Pertanyaan</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let currentQuestions = {{ questions|tojson }};
+  const surveiId = {{ survei.id }};
+
+  function handleTypeChange() {
+    const selectedType = document.querySelector('input[name="tipe_pertanyaan"]:checked').value;
+    
+    // Highlight selected card
+    document.querySelectorAll('.q-type-radio').forEach(el => {
+      if (el.dataset.type === selectedType) {
+        el.classList.add('border-blue-500', 'bg-blue-50/40', 'ring-2', 'ring-blue-500/20');
+        el.classList.remove('border-slate-200');
+      } else {
+        el.classList.remove('border-blue-500', 'bg-blue-50/40', 'ring-2', 'ring-blue-500/20');
+        el.classList.add('border-slate-200');
+      }
+    });
+
+    const optionsSection = document.getElementById('optionsConfigSection');
+    const ratingSection = document.getElementById('ratingConfigSection');
+
+    if (['radio', 'checkbox', 'dropdown'].includes(selectedType)) {
+      optionsSection.classList.remove('hidden');
+      ratingSection.classList.add('hidden');
+      const container = document.getElementById('optionsListInputs');
+      if (container.children.length === 0) {
+        addOptionInput('Pilihan 1');
+        addOptionInput('Pilihan 2');
+        addOptionInput('Pilihan 3');
+      }
+    } else if (selectedType === 'rating') {
+      optionsSection.classList.add('hidden');
+      ratingSection.classList.remove('hidden');
+    } else {
+      optionsSection.classList.add('hidden');
+      ratingSection.classList.add('hidden');
+    }
+  }
+
+  function addOptionInput(val = '') {
+    const container = document.getElementById('optionsListInputs');
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-2 option-row';
+    div.innerHTML = `
+      <i class="fa-solid fa-grip-vertical text-slate-300 text-xs cursor-move"></i>
+      <input type="text" value="${val}" placeholder="Ketik label pilihan..." class="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none opt-input">
+      <button type="button" onclick="this.parentElement.remove()" class="p-1.5 text-slate-400 hover:text-rose-600 rounded">
+        <i class="fa-solid fa-trash-can text-xs"></i>
+      </button>
+    `;
+    container.appendChild(div);
+  }
+
+  function openAddQuestionModal() {
+    document.getElementById('modalQuestionTitle').innerText = 'Tambah Pertanyaan Baru';
+    document.getElementById('q_edit_id').value = '';
+    document.getElementById('q_teks').value = '';
+    document.getElementById('q_panduan').value = '';
+    document.getElementById('q_is_required').checked = true;
+    document.getElementById('q_rating_max').value = '5';
+    document.getElementById('optionsListInputs').innerHTML = '';
+    
+    // Default select short_text
+    const firstRadio = document.querySelector('input[name="tipe_pertanyaan"][value="short_text"]');
+    if (firstRadio) firstRadio.checked = true;
+    handleTypeChange();
+
+    document.getElementById('modalQuestionForm').classList.remove('hidden');
+  }
+
+  function openEditQuestionModal(q) {
+    document.getElementById('modalQuestionTitle').innerText = 'Edit Pertanyaan';
+    document.getElementById('q_edit_id').value = q.id;
+    document.getElementById('q_teks').value = q.teks_pertanyaan;
+    document.getElementById('q_panduan').value = q.panduan || '';
+    document.getElementById('q_is_required').checked = q.is_required === 1;
+    document.getElementById('q_rating_max').value = (q.rating_max || 5).toString();
+
+    // Select type
+    const typeRadio = document.querySelector(`input[name="tipe_pertanyaan"][value="${q.tipe_pertanyaan}"]`);
+    if (typeRadio) typeRadio.checked = true;
+    
+    // Set options
+    const container = document.getElementById('optionsListInputs');
+    container.innerHTML = '';
+    if (['radio', 'checkbox', 'dropdown'].includes(q.tipe_pertanyaan)) {
+      const opts = q.pilihan_opsi_list || [];
+      if (opts.length > 0) {
+        opts.forEach(o => addOptionInput(o));
+      } else {
+        addOptionInput('Pilihan 1');
+      }
+    }
+
+    handleTypeChange();
+    document.getElementById('modalQuestionForm').classList.remove('hidden');
+  }
+
+  function closeQuestionModal() {
+    document.getElementById('modalQuestionForm').classList.add('hidden');
+  }
+
+  function saveQuestion(e) {
+    e.preventDefault();
+    const editId = document.getElementById('q_edit_id').value;
+    const teks = document.getElementById('q_teks').value.trim();
+    const panduan = document.getElementById('q_panduan').value.trim();
+    const tipe = document.querySelector('input[name="tipe_pertanyaan"]:checked').value;
+    const isRequired = document.getElementById('q_is_required').checked;
+    const ratingMax = parseInt(document.getElementById('q_rating_max').value) || 5;
+
+    let opsi = [];
+    if (['radio', 'checkbox', 'dropdown'].includes(tipe)) {
+      document.querySelectorAll('#optionsListInputs .opt-input').forEach(input => {
+        const val = input.value.trim();
+        if (val) opsi.push(val);
+      });
+      if (opsi.length === 0) {
+        alert('Harap masukkan minimal satu pilihan opsi!');
+        return;
+      }
+    }
+
+    const payload = {
+      teks_pertanyaan: teks,
+      tipe_pertanyaan: tipe,
+      panduan: panduan,
+      is_required: isRequired,
+      rating_max: ratingMax,
+      pilihan_opsi: opsi
+    };
+
+    const submitBtn = document.getElementById('btnSubmitQuestion');
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Menyimpan...';
+
+    const url = editId ? `/api/pertanyaan/${editId}/update` : `/api/survei/${surveiId}/pertanyaan`;
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(res => res.json())
+      .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Simpan Pertanyaan';
+        if (data.success) {
+          closeQuestionModal();
+          showToast(data.message);
+          setTimeout(() => location.reload(), 600);
+        } else {
+          alert(data.message || 'Gagal menyimpan pertanyaan');
+        }
+      })
+      .catch(err => {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Simpan Pertanyaan';
+        alert('Terjadi kesalahan koneksi.');
+      });
+  }
+
+  function deleteQuestion(qId) {
+    if (!confirm('Apakah Anda yakin ingin menghapus pertanyaan ini?')) return;
+
+    fetch(`/api/pertanyaan/${qId}/hapus`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Pertanyaan berhasil dihapus');
+          const el = document.getElementById(`q-card-${qId}`);
+          if (el) el.remove();
+          setTimeout(() => location.reload(), 500);
+        }
+      });
+  }
+
+  function moveQuestion(index, direction) {
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= currentQuestions.length) return;
+
+    // Swap elements in currentQuestions
+    const temp = currentQuestions[index];
+    currentQuestions[index] = currentQuestions[targetIdx];
+    currentQuestions[targetIdx] = temp;
+
+    const orderIds = currentQuestions.map(q => q.id);
+
+    fetch(`/api/survei/${surveiId}/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order: orderIds })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Urutan pertanyaan diperbarui');
+          location.reload();
+        }
+      });
+  }
+
+  // Initialize selection styling
+  document.addEventListener('DOMContentLoaded', () => {
+    handleTypeChange();
+  });
+</script>
+{% endblock %}

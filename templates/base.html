@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SiSurvei - Sistem Informasi & Manajemen Survei Terpadu{% endblock %}</title>
+  
+  <!-- Google Fonts & Tailwind CSS CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              200: '#bfdbfe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Chart.js 4 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased">
+
+  <div class="flex h-screen overflow-hidden bg-slate-50">
+    
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-200 transition-transform -translate-x-full md:translate-x-0 flex flex-col shadow-xl">
+      <!-- App Header -->
+      <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-950/40">
+        <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+            <i class="fa-solid fa-square-poll-vertical text-xl"></i>
+          </div>
+          <div>
+            <span class="font-bold text-lg text-white tracking-tight flex items-center">
+              Si<span class="text-blue-400">Survei</span>
+              <span class="ml-1.5 px-1.5 py-0.5 text-[10px] uppercase font-extrabold bg-blue-500/20 text-blue-300 rounded border border-blue-400/30">PRO</span>
+            </span>
+            <p class="text-[11px] text-slate-400 font-medium">Portal Survei & Data</p>
+          </div>
+        </a>
+        <button id="closeSidebarBtn" class="md:hidden text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="flex-1 overflow-y-auto custom-scrollbar px-4 py-5 space-y-1">
+        <div class="px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Menu Utama</div>
+        
+        <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if request.endpoint == 'dashboard' %}bg-blue-600 text-white shadow-md shadow-blue-600/30{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+          <i class="fa-solid fa-chart-pie w-5 text-center text-base"></i>
+          <span>Dashboard Utama</span>
+        </a>
+
+        <a href="{{ url_for('survei_index') }}" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if request.endpoint in ['survei_index', 'survei_tambah', 'survei_edit', 'survei_builder', 'survei_hasil'] %}bg-blue-600 text-white shadow-md shadow-blue-600/30{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+          <i class="fa-solid fa-clipboard-list w-5 text-center text-base"></i>
+          <span>Kegiatan Survei</span>
+        </a>
+
+        <a href="{{ url_for('petugas_index') }}" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if request.endpoint in ['petugas_index', 'petugas_detail'] %}bg-blue-600 text-white shadow-md shadow-blue-600/30{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+          <i class="fa-solid fa-users-gear w-5 text-center text-base"></i>
+          <span>Pengelolaan Petugas</span>
+        </a>
+
+        <a href="{{ url_for('respons_index') }}" class="flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all {% if request.endpoint == 'respons_index' %}bg-blue-600 text-white shadow-md shadow-blue-600/30{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+          <i class="fa-solid fa-database w-5 text-center text-base"></i>
+          <span>Data Responden</span>
+        </a>
+
+        <div class="pt-6 px-3 pb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Aksi Cepat</div>
+
+        <a href="{{ url_for('survei_tambah') }}" class="flex items-center space-x-3 px-3.5 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/80 hover:text-white transition">
+          <i class="fa-solid fa-circle-plus text-emerald-400 w-5 text-center"></i>
+          <span>Buat Survei Baru</span>
+        </a>
+
+        <button onclick="document.getElementById('modalTambahPetugasQuick') && document.getElementById('modalTambahPetugasQuick').classList.remove('hidden')" class="w-full flex items-center space-x-3 px-3.5 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/80 hover:text-white transition text-left">
+          <i class="fa-solid fa-user-plus text-blue-400 w-5 text-center"></i>
+          <span>Tambah Petugas</span>
+        </button>
+      </div>
+
+      <!-- User / System Info Footer -->
+      <div class="p-4 border-t border-slate-800 bg-slate-950/60">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-slate-700 to-slate-600 flex items-center justify-center text-white font-semibold text-xs border border-slate-600">
+            ADM
+          </div>
+          <div class="overflow-hidden">
+            <p class="text-xs font-semibold text-white truncate">Administrator Survei</p>
+            <p class="text-[11px] text-emerald-400 flex items-center gap-1.5 font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Sistem Online
+            </p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="flex-1 flex flex-col md:pl-64 overflow-hidden">
+      
+      <!-- TOP NAVBAR -->
+      <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-20">
+        <div class="flex items-center space-x-3">
+          <button id="openSidebarBtn" class="md:hidden text-slate-600 hover:text-slate-900 p-2 rounded-lg hover:bg-slate-100">
+            <i class="fa-solid fa-bars text-lg"></i>
+          </button>
+          <div>
+            <h1 class="text-lg md:text-xl font-bold text-slate-900 tracking-tight">{% block header_title %}Dashboard Hasil Survei{% endblock %}</h1>
+            <p class="text-xs text-slate-500 hidden sm:block">{% block header_subtitle %}Monitoring capaian survei & data responden terkini{% endblock %}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <a href="{{ url_for('survei_tambah') }}" class="hidden sm:inline-flex items-center space-x-2 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition">
+            <i class="fa-solid fa-plus"></i>
+            <span>Survei Baru</span>
+          </a>
+
+          <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+          <!-- Public Live Preview Link dropdown/button -->
+          <a href="{{ url_for('survei_index') }}" class="inline-flex items-center space-x-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span class="hidden sm:inline">Jelajahi Survei</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- FLASH MESSAGES -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="px-4 md:px-8 pt-4">
+            {% for category, message in messages %}
+              <div class="flex items-center justify-between p-4 mb-3 text-sm rounded-xl border {% if category == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-200{% elif category == 'danger' %}bg-rose-50 text-rose-800 border-rose-200{% elif category == 'warning' %}bg-amber-50 text-amber-800 border-amber-200{% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %} shadow-sm">
+                <div class="flex items-center space-x-2.5">
+                  <i class="fa-solid {% if category == 'success' %}fa-circle-check text-emerald-500{% elif category == 'danger' %}fa-circle-exclamation text-rose-500{% elif category == 'warning' %}fa-triangle-exclamation text-amber-500{% else %}fa-circle-info text-blue-500{% endif %}"></i>
+                  <span>{{ message }}</span>
+                </div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-700 text-xs p-1">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <!-- SCROLLABLE PAGE CONTENT -->
+      <main class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
+        {% block content %}{% endblock %}
+      </main>
+
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 translate-y-20 opacity-0 pointer-events-none">
+    <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 text-sm border border-slate-700">
+      <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+      <span id="toastMessage">Tindakan berhasil!</span>
+    </div>
+  </div>
+
+  <!-- Mobile Sidebar Scripts -->
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const openBtn = document.getElementById('openSidebarBtn');
+    const closeBtn = document.getElementById('closeSidebarBtn');
+
+    if (openBtn) {
+      openBtn.addEventListener('click', () => {
+        sidebar.classList.remove('-translate-x-full');
+      });
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        sidebar.classList.add('-translate-x-full');
+      });
+    }
+
+    // Global Toast Function
+    window.showToast = function(message, isSuccess = true) {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+      
+      toastMsg.innerText = message;
+      if (isSuccess) {
+        toastIcon.className = 'fa-solid fa-circle-check text-emerald-400';
+      } else {
+        toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400';
+      }
+      
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3500);
+    };
+
+    // Helper Copy Link
+    window.copyToClipboard = function(text, label = 'Tautan') {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(`${label} berhasil disalin ke clipboard!`);
+      }).catch(err => {
+        showToast('Gagal menyalin tautan', false);
+      });
+    };
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

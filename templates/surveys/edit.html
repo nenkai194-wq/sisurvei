@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Survei - {{ survei.judul }} - SiSurvei{% endblock %}
+{% block header_title %}Pengaturan Survei{% endblock %}
+{% block header_subtitle %}Perbarui informasi survei, target capaian, dan penugasan tim petugas{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <div>
+    <a href="{{ url_for('survei_index') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+      <i class="fa-solid fa-arrow-left"></i>
+      <span>Kembali ke Daftar Survei</span>
+    </a>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+      <div>
+        <h2 class="text-base font-bold text-slate-900">Perbarui Parameter Survei</h2>
+        <p class="text-xs text-slate-500">Edit metadata survei dan penugasan petugas lapangan.</p>
+      </div>
+      <a href="{{ url_for('survei_builder', id=survei.id) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition">
+        <i class="fa-solid fa-pen-ruler"></i>
+        <span>Buka Desain Soal</span>
+      </a>
+    </div>
+
+    <form action="{{ url_for('survei_edit', id=survei.id) }}" method="POST" class="p-6 space-y-6">
+      
+      <!-- Baris 1: Judul & Kode -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Judul Kegiatan Survei <span class="text-rose-500">*</span></label>
+          <input type="text" name="judul" value="{{ survei.judul }}" required class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Kode Survei (Unik) <span class="text-rose-500">*</span></label>
+          <input type="text" name="kode_survei" value="{{ survei.kode_survei }}" required class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono uppercase bg-slate-50">
+        </div>
+      </div>
+
+      <!-- Baris 2: Kategori & Target Responden -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Kategori / Sektor <span class="text-rose-500">*</span></label>
+          <input type="text" name="kategori" value="{{ survei.kategori }}" list="kategoriOptions" required class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          <datalist id="kategoriOptions">
+            <option value="Pelayanan Publik">
+            <option value="Infrastruktur & Lingkungan">
+            <option value="Kesehatan Masyarakat">
+            <option value="Ekonomi & UMKM">
+            <option value="Pendidikan & SDM">
+            <option value="Kependudukan">
+          </datalist>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Target Responden <span class="text-rose-500">*</span></label>
+          <div class="relative">
+            <input type="number" name="target_responden" value="{{ survei.target_responden }}" min="1" required class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-medium">Orang</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status Survei</label>
+          <select name="status" class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+            <option value="Aktif" {% if survei.status == 'Aktif' %}selected{% endif %}>Aktif (Bisa Diisi)</option>
+            <option value="Draft" {% if survei.status == 'Draft' %}selected{% endif %}>Draft (Belum Dibuka)</option>
+            <option value="Selesai" {% if survei.status == 'Selesai' %}selected{% endif %}>Selesai (Ditutup)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Baris 3: Jadwal -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal Dimulai</label>
+          <input type="date" name="tanggal_mulai" value="{{ survei.tanggal_mulai or '' }}" class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal Selesai</label>
+          <input type="date" name="tanggal_selesai" value="{{ survei.tanggal_selesai or '' }}" class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Baris 4: Deskripsi -->
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Deskripsi Singkat & Petunjuk Responden</label>
+        <textarea name="deskripsi" rows="3" class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed">{{ survei.deskripsi or '' }}</textarea>
+      </div>
+
+      <!-- Baris 5: Opsi Publik -->
+      <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" name="is_public" value="1" {% if survei.is_public %}checked{% endif %} class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+          <div>
+            <span class="text-xs font-bold text-slate-800">Izinkan Pengisian Mandiri Secara Publik</span>
+            <p class="text-[11px] text-slate-500">Jika aktif, siapa pun yang memiliki tautan dapat mengisi formulir survei.</p>
+          </div>
+        </label>
+      </div>
+
+      <!-- Baris 6: Penugasan Petugas -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-bold text-slate-700 uppercase tracking-wider">Penugasan Petugas Lapangan (Enumerator)</label>
+          <span class="text-xs text-slate-400">{{ assigned_petugas_ids|length }} Petugas Terpilih</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto custom-scrollbar p-3 border border-slate-200 rounded-xl bg-slate-50/50">
+          {% for p in all_petugas %}
+          <label class="flex items-start gap-2.5 p-2.5 bg-white rounded-lg border {% if p.id in assigned_petugas_ids %}border-blue-400 bg-blue-50/20{% else %}border-slate-200{% endif %} hover:border-blue-400 cursor-pointer transition select-none">
+            <input type="checkbox" name="petugas_ids" value="{{ p.id }}" {% if p.id in assigned_petugas_ids %}checked{% endif %} class="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
+            <div class="text-xs flex-1">
+              <p class="font-bold text-slate-800 leading-tight">{{ p.nama }}</p>
+              <div class="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400">
+                <span class="font-mono text-blue-600">{{ p.nip }}</span>
+                <span>•</span>
+                <span>{{ p.wilayah or '-' }}</span>
+              </div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+        <a href="{{ url_for('survei_index') }}" class="px-5 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+          Batal
+        </a>
+        <button type="submit" class="px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md shadow-blue-500/20 inline-flex items-center gap-2">
+          <i class="fa-solid fa-floppy-disk"></i>
+          <span>Simpan Perubahan</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+{% endblock %}

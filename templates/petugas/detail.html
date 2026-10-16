@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block title %}Profil Petugas - {{ petugas.nama }} - SiSurvei{% endblock %}
+{% block header_title %}Profil & Kinerja Petugas Survei{% endblock %}
+{% block header_subtitle %}Detail informasi, riwayat penugasan survei, dan rekam jejak input kuisioner{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Back button -->
+  <div>
+    <a href="{{ url_for('petugas_index') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+      <i class="fa-solid fa-arrow-left"></i>
+      <span>Kembali ke Daftar Petugas</span>
+    </a>
+  </div>
+
+  <!-- PROFILE HEADER CARD -->
+  <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+      
+      <div class="flex items-center gap-4 sm:gap-6">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+          {{ petugas.nama[0]|upper }}
+        </div>
+        <div>
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{{ petugas.nip }}</span>
+            <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full {% if petugas.status == 'Aktif' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-700{% endif %}">
+              {{ petugas.status }}
+            </span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">{{ petugas.nama }}</h2>
+          <p class="text-xs text-slate-500 mt-0.5">{{ petugas.jabatan }} • Wilayah: <strong class="text-slate-700">{{ petugas.wilayah or '-' }}</strong></p>
+        </div>
+      </div>
+
+      <!-- Contact Actions -->
+      <div class="flex items-center gap-2 flex-wrap">
+        {% if petugas.no_hp %}
+        <a href="https://wa.me/{{ petugas.no_hp|replace(' ', '')|replace('-', '')|replace('+', '')|replace('^0', '62') }}" target="_blank" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition">
+          <i class="fa-brands fa-whatsapp text-sm"></i>
+          <span>Hubungi WA</span>
+        </a>
+        {% endif %}
+
+        {% if petugas.email %}
+        <a href="mailto:{{ petugas.email }}" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+          <i class="fa-solid fa-envelope text-sm"></i>
+          <span>Kirim Email</span>
+        </a>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- KPI Metrics -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-100">
+      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Survei Ditugaskan</span>
+        <p class="text-2xl font-extrabold text-slate-900 mt-1">{{ assigned_surveys|length }} Kegiatan</p>
+      </div>
+
+      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Responden Diinput</span>
+        <p class="text-2xl font-extrabold text-blue-600 mt-1">{{ total_respon_diinput }} Kuisioner</p>
+      </div>
+
+      <div class="col-span-2 sm:col-span-1 p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Status Akun Enumerator</span>
+        <p class="text-2xl font-extrabold text-emerald-600 mt-1">{{ petugas.status }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSIGNED SURVEYS LIST -->
+  <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-base font-bold text-slate-900">Survei yang Ditugaskan ke Petugas Ini</h3>
+        <p class="text-xs text-slate-500">Capaian pengumpulan data per kegiatan survei</p>
+      </div>
+      <span class="text-xs font-bold text-slate-500">{{ assigned_surveys|length }} Penugasan</span>
+    </div>
+
+    {% if assigned_surveys %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for s in assigned_surveys %}
+        <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-mono font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">{{ s.kode_survei }}</span>
+              <span class="px-2 py-0.5 text-[10px] font-bold rounded-full {% if s.status == 'Aktif' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-700{% endif %}">{{ s.status }}</span>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">{{ s.judul }}</h4>
+            <p class="text-xs text-slate-500 mt-1">Peran: <strong class="text-slate-700">{{ s.peran }}</strong></p>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
+            <span class="text-slate-600">Realisasi: <strong class="text-blue-600 font-bold">{{ s.respons_petugas }}</strong> Respon</span>
+            <a href="{{ url_for('survei_hasil', id=s.id) }}?petugas_id={{ petugas.id }}" class="font-bold text-blue-600 hover:text-blue-800">
+              Lihat Data Respon &rarr;
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="p-8 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
+        Petugas ini belum ditugaskan ke survei manapun.
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- RECENT INPUTS TABLE -->
+  <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-base font-bold text-slate-900">Riwayat Penginputan Kuisioner Terakhir</h3>
+        <p class="text-xs text-slate-500">20 responden terakhir yang diwawancarai/diinput oleh {{ petugas.nama }}</p>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-slate-600">
+        <thead class="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] border-y border-slate-200">
+          <tr>
+            <th class="py-3 px-4">No</th>
+            <th class="py-3 px-4">Responden</th>
+            <th class="py-3 px-4">Survei</th>
+            <th class="py-3 px-4">Wilayah</th>
+            <th class="py-3 px-4">Waktu Submit</th>
+            <th class="py-3 px-4 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for r in input_history %}
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-mono text-slate-400">{{ loop.index }}</td>
+            <td class="py-3 px-4 font-bold text-slate-900">{{ r.nama_responden or 'Anonim' }}</td>
+            <td class="py-3 px-4 font-medium text-slate-800">
+              <span class="font-mono text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mr-1">{{ r.kode_survei }}</span>
+              {{ r.judul_survei }}
+            </td>
+            <td class="py-3 px-4 text-slate-600">{{ r.alamat_wilayah or '-' }}</td>
+            <td class="py-3 px-4 text-slate-500">{{ r.waktu_selesai|format_datetime }}</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="viewRespondentDetail({{ r.id }})" class="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition" title="Lihat Lembar Jawaban">
+                <i class="fa-solid fa-eye text-sm"></i>
+              </button>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-400">Belum ada kuisioner yang diinput oleh petugas ini.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL DETAIL JAWABAN RESPONDEN -->
+<div id="modalDetailResponden" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+  <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <div>
+        <h3 class="text-base font-bold text-slate-900" id="modalRespTitle">Lembar Jawaban Responden</h3>
+        <p class="text-xs text-slate-500" id="modalRespSubtitle">Memuat data...</p>
+      </div>
+      <button onclick="document.getElementById('modalDetailResponden').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4" id="modalRespBody">
+      <div class="text-center py-8 text-slate-400">
+        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-blue-600"></i>
+        <p class="mt-2 text-xs">Mengambil data kuisioner...</p>
+      </div>
+    </div>
+
+    <div class="px-6 py-3 border-t border-slate-100 flex justify-end bg-slate-50">
+      <button onclick="document.getElementById('modalDetailResponden').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-lg transition">Tutup</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function viewRespondentDetail(respId) {
+    const modal = document.getElementById('modalDetailResponden');
+    const title = document.getElementById('modalRespTitle');
+    const subtitle = document.getElementById('modalRespSubtitle');
+    const body = document.getElementById('modalRespBody');
+
+    modal.classList.remove('hidden');
+    body.innerHTML = `
+      <div class="text-center py-8 text-slate-400">
+        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-blue-600"></i>
+        <p class="mt-2 text-xs">Mengambil data...</p>
+      </div>
+    `;
+
+    fetch(`/api/responden/${respId}/detail`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          body.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs">Gagal mengambil data kuisioner.</div>`;
+          return;
+        }
+
+        const r = data.responden;
+        title.innerText = `Lembar Jawaban: ${r.nama_responden || 'Anonim'}`;
+        subtitle.innerText = `${r.judul_survei} • Waktu: ${r.waktu_selesai}`;
+
+        let html = `
+          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-4">
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Usia / Gender</span>
+              <span class="font-bold text-slate-800">${r.usia ? r.usia + ' Tahun' : '-'} / ${r.jenis_kelamin || '-'}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Kontak</span>
+              <span class="font-bold text-slate-800">${r.kontak_responden || '-'}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Wilayah</span>
+              <span class="font-bold text-slate-800">${r.alamat_wilayah || '-'}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Petugas Lapangan</span>
+              <span class="font-bold text-blue-700">${r.nama_petugas ? r.nama_petugas : 'Mandiri'}</span>
+            </div>
+          </div>
+
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Jawaban Kuisioner (${data.answers.length} Pertanyaan)</h4>
+          <div class="space-y-3">
+        `;
+
+        data.answers.forEach((q, idx) => {
+          let ansDisplay = '';
+          if (Array.isArray(q.jawaban_teks_parsed)) {
+            ansDisplay = q.jawaban_teks_parsed.map(item => `
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1 mb-1">
+                <i class="fa-solid fa-check mr-1 text-[10px]"></i> ${item}
+              </span>
+            `).join('');
+          } else if (q.tipe_pertanyaan === 'rating') {
+            const val = parseInt(q.jawaban_angka || 0);
+            let stars = '';
+            for (let s = 1; s <= (q.rating_max || 5); s++) {
+              stars += s <= val ? '<i class="fa-solid fa-star text-amber-400 mr-0.5"></i>' : '<i class="fa-regular fa-star text-slate-300 mr-0.5"></i>';
+            }
+            ansDisplay = `<div class="flex items-center gap-2"><div class="text-sm">${stars}</div><span class="text-xs font-bold text-slate-700">(${val} / ${q.rating_max || 5})</span></div>`;
+          } else {
+            ansDisplay = `<p class="text-xs text-slate-800 font-medium whitespace-pre-line">${q.jawaban_teks || '<span class="text-slate-400 italic">(Tidak diisi)</span>'}</p>`;
+          }
+
+          html += `
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-white">
+              <p class="text-xs font-bold text-slate-900 mb-1.5"><span class="text-blue-600 mr-1">${idx + 1}.</span> ${q.teks_pertanyaan}</p>
+              <div class="pt-1.5 border-t border-slate-100">${ansDisplay}</div>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+        body.innerHTML = html;
+      });
+  }
+</script>
+{% endblock %}

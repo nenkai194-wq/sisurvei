@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terima Kasih - SiSurvei</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style> body { font-family: 'Plus Jakarta Sans', sans-serif; } </style>
+</head>
+<body class="min-h-full flex items-center justify-center p-4">
+
+  <div class="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200/90 shadow-xl text-center space-y-6">
+    <div class="w-20 h-20 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-4xl mx-auto shadow-sm animate-bounce">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+
+    <div>
+      <span class="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-200">{{ survei.kode_survei }}</span>
+      <h2 class="text-2xl font-extrabold text-slate-900 mt-2">Terima Kasih!</h2>
+      <p class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+        Partisipasi dan respons Anda dalam kegiatan survei <strong class="text-slate-800">"{{ survei.judul }}"</strong> telah berhasil kami rekam dan simpan ke dalam sistem.
+      </p>
+    </div>
+
+    {% if resp_id %}
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+      <span class="text-slate-400 block text-[10px] uppercase font-bold">Nomor Referensi Respon</span>
+      <span class="font-mono font-bold text-slate-800 text-sm">#RESP-{{ '%05d' % resp_id|int }}</span>
+    </div>
+    {% endif %}
+
+    <div class="pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+      <a href="{{ url_for('survei_isi', kode_survei=survei.kode_survei) }}" class="w-full py-3 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition inline-flex items-center justify-center gap-2">
+        <i class="fa-solid fa-rotate-right"></i>
+        <span>Isi Kuisioner Baru</span>
+      </a>
+
+      <a href="{{ url_for('dashboard') }}" class="w-full py-3 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition inline-flex items-center justify-center gap-2">
+        <i class="fa-solid fa-gauge-high"></i>
+        <span>Kembali ke Dashboard Utama</span>
+      </a>
+    </div>
+  </div>
+
+</body>
+</html>
