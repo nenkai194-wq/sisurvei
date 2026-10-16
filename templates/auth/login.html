@@ -2,7 +2,8 @@
 <html lang="id" class="h-full bg-slate-900">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta name="theme-color" content="#020617">
   <title>Masuk ke Akun - SiSurvei Portal</title>
   
   <!-- Google Fonts & Tailwind CSS CDN -->
@@ -27,15 +28,26 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
+      -webkit-tap-highlight-color: transparent;
+    }
     .bg-grid-pattern {
       background-size: 40px 40px;
       background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
                         linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     }
+    @media screen and (max-width: 768px) {
+      input, select {
+        font-size: 16px !important;
+      }
+    }
+    button, a, input, select {
+      touch-action: manipulation;
+    }
   </style>
 </head>
-<body class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-950 bg-grid-pattern relative">
+<body class="min-h-full flex flex-col justify-center py-8 sm:py-12 px-3 sm:px-6 lg:px-8 bg-slate-950 bg-grid-pattern relative">
 
   <!-- Ambient Glow Background Effects -->
   <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -76,7 +88,7 @@
     {% endwith %}
 
     <!-- Card Login -->
-    <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60">
+    <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl shadow-black/60">
 
       <!-- FORM LOGIN -->
       <form id="loginForm" action="{{ url_for('login') }}" method="POST" class="space-y-4">

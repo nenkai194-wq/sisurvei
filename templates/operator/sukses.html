@@ -1,28 +1,28 @@
 {% extends 'operator/base.html' %}
 
-{% block title %}Sampel Berhasil Disimpan - Portal Operator{% endblock %}
+{% block title %}Sampel Berhasil Disimpan - SiSurvei Mobile{% endblock %}
 
 {% block content %}
-<div class="max-w-lg mx-auto py-8">
+<div class="max-w-md mx-auto py-2 sm:py-6">
 
-  <div class="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-xl text-center space-y-6">
-    <div class="w-20 h-20 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-4xl mx-auto shadow-sm animate-bounce">
+  <div class="bg-white rounded-3xl p-5 sm:p-8 border border-slate-200/90 shadow-md text-center space-y-4 sm:space-y-6">
+    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-3xl sm:text-4xl mx-auto shadow-xs animate-bounce">
       <i class="fa-solid fa-circle-check"></i>
     </div>
 
     <div>
-      <span class="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">{{ survei.kode_survei }}</span>
-      <h2 class="text-2xl font-extrabold text-slate-900 mt-2">Sampel Berhasil Disimpan!</h2>
-      <p class="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
-        Kuisioner responden untuk kegiatan survei <strong class="text-slate-800">"{{ survei.judul }}"</strong> telah berhasil diverifikasi dan tersimpan atas nama Anda.
+      <span class="text-[10px] sm:text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">{{ survei.kode_survei }}</span>
+      <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-2">Sampel Berhasil Disimpan!</h2>
+      <p class="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+        Kuisioner responden untuk kegiatan survei <strong class="text-slate-800">"{{ survei.judul }}"</strong> telah diverifikasi dan tersimpan atas nama Anda.
       </p>
     </div>
 
     <!-- Progres Sampel Box -->
-    <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2.5">
+    <div class="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2.5">
       <div class="flex items-center justify-between text-xs">
         <span class="font-bold text-slate-700">Realisasi Sampel Anda:</span>
-        <span class="font-extrabold text-emerald-600 text-sm">{{ realisasi_count }} / {{ penugasan.target_individu }} Sampel ({{ persen_sampel }}%)</span>
+        <span class="font-extrabold text-emerald-600 text-xs sm:text-sm">{{ realisasi_count }} / {{ penugasan.target_individu }} Sampel ({{ persen_sampel }}%)</span>
       </div>
 
       <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
@@ -31,9 +31,9 @@
 
       <div class="text-[11px] text-slate-500 pt-1 flex items-center justify-between">
         {% if sisa_sampel > 0 %}
-          <span>Sisa target Anda: <strong class="text-amber-600 font-bold">{{ sisa_sampel }}</strong> sampel lagi</span>
+          <span>Sisa target Anda: <strong class="text-amber-600 font-bold">{{ sisa_sampel }}</strong> lagi</span>
         {% else %}
-          <span class="text-emerald-600 font-bold">🎉 Selamat! Anda telah menuntaskan target sampel survei ini.</span>
+          <span class="text-emerald-600 font-bold">🎉 Target telah tuntas!</span>
         {% endif %}
         {% if resp_id %}
           <span class="font-mono text-slate-400">#R-{{ '%04d' % resp_id|int }}</span>
@@ -41,14 +41,14 @@
       </div>
     </div>
 
-    <!-- Tombol Aksi Lanjut / Kembali -->
+    <!-- Tombol Aksi Lanjut / Kembali (Full-width Touch Buttons for Android) -->
     <div class="pt-2 flex flex-col gap-2.5">
-      <a href="{{ url_for('operator_survei_isi', survei_id=survei.id) }}" class="w-full py-3.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-500/20 inline-flex items-center justify-center gap-2">
-        <i class="fa-solid fa-plus-circle text-sm"></i>
+      <a href="{{ url_for('operator_survei_isi', survei_id=survei.id) }}" class="w-full py-3.5 sm:py-4 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-500/20 inline-flex items-center justify-center gap-2">
+        <i class="fa-solid fa-plus-circle text-base"></i>
         <span>Lanjut Input Sampel Berikutnya</span>
       </a>
 
-      <a href="{{ url_for('operator_tugas') }}" class="w-full py-3 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition inline-flex items-center justify-center gap-2">
+      <a href="{{ url_for('operator_tugas') }}" class="w-full py-3 text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-xl transition inline-flex items-center justify-center gap-2">
         <i class="fa-solid fa-list-check"></i>
         <span>Kembali ke Halaman Tugas Survei</span>
       </a>

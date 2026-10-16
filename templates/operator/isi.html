@@ -1,6 +1,6 @@
 {% extends 'operator/base.html' %}
 
-{% block title %}Input Sampel Kuisioner - {{ survei.judul }} - Portal Operator{% endblock %}
+{% block title %}Input Sampel #{{ realisasi_count + 1 }} - {{ survei.judul }} - SiSurvei Mobile{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -8,42 +8,44 @@
     cursor: pointer;
     transition: transform 0.15s ease, color 0.15s ease;
   }
-  .star-rating .fa-star:hover {
-    transform: scale(1.2);
+  .star-rating .fa-star:active {
+    transform: scale(1.25);
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto space-y-6">
+<div class="max-w-2xl mx-auto space-y-4 sm:space-y-6">
 
-  <!-- TOP SAMPLE PROGRESS BANNER -->
-  <div class="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-3xl p-6 text-white shadow-lg space-y-4">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-white/20 text-emerald-200 border border-white/20">
-            Penugasan: {{ penugasan.peran }}
+  <!-- TOP MOBILE-FRIENDLY SAMPLE PROGRESS CARD -->
+  <div class="bg-gradient-to-r from-emerald-800 to-teal-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white shadow-md space-y-3 sm:space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+          <span class="px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-extrabold uppercase bg-white/20 text-emerald-100 border border-white/20">
+            {{ penugasan.peran }}
           </span>
-          <span class="text-xs text-emerald-200 font-mono">{{ survei.kode_survei }}</span>
+          <span class="text-[11px] sm:text-xs text-emerald-200 font-mono">{{ survei.kode_survei }}</span>
         </div>
-        <h2 class="text-lg font-extrabold leading-snug">{{ survei.judul }}</h2>
+        <h2 class="text-base sm:text-lg font-extrabold leading-snug line-clamp-2 text-white">{{ survei.judul }}</h2>
       </div>
 
-      <div class="shrink-0 text-left sm:text-right">
-        <span class="text-[11px] text-emerald-200 uppercase font-semibold block">Target Sampel Anda</span>
-        <span class="text-xl font-extrabold text-white">{{ realisasi_count }} <span class="text-xs font-normal text-emerald-300">/ {{ penugasan.target_individu }} Sampel</span></span>
+      <div class="shrink-0 text-right bg-white/10 px-3 py-1.5 rounded-xl border border-white/15">
+        <span class="text-[9px] sm:text-[10px] text-emerald-200 uppercase font-bold block">Target Sampel Anda</span>
+        <span class="text-base sm:text-lg font-extrabold text-white leading-tight">
+          {{ realisasi_count }} <span class="text-xs font-normal text-emerald-200">/ {{ penugasan.target_individu }}</span>
+        </span>
       </div>
     </div>
 
     <!-- Progress Indicator Bar -->
     <div class="pt-2 border-t border-white/10 space-y-1.5">
-      <div class="flex items-center justify-between text-xs text-emerald-200">
+      <div class="flex items-center justify-between text-xs text-emerald-100">
         <span class="font-bold flex items-center gap-1.5">
-          <i class="fa-solid fa-user-check"></i>
-          Sedang Menginput: Sampel ke-{{ realisasi_count + 1 }} dari {{ penugasan.target_individu }}
+          <i class="fa-solid fa-clipboard-check text-emerald-300"></i>
+          <span>Sedang Menginput: <strong class="text-white">Sampel #{{ realisasi_count + 1 }}</strong></span>
         </span>
-        <span class="font-bold text-white">{{ persen_sampel }}% Selesai</span>
+        <span class="font-bold text-white text-[11px] sm:text-xs">{{ persen_sampel }}% Selesai</span>
       </div>
       <div class="w-full bg-black/20 rounded-full h-2.5 overflow-hidden">
         <div class="bg-gradient-to-r from-teal-300 to-emerald-400 h-2.5 rounded-full transition-all duration-300" style="width: {{ persen_sampel }}%"></div>
@@ -52,161 +54,276 @@
   </div>
 
   <!-- FORM SURVEI OPERATOR -->
-  <form id="operatorSurveyForm" action="{{ url_for('operator_survei_isi', survei_id=survei.id) }}" method="POST" class="space-y-6">
+  <form id="operatorSurveyForm" action="{{ url_for('operator_survei_isi', survei_id=survei.id) }}" method="POST" class="space-y-4 sm:space-y-6">
     <input type="hidden" name="petugas_id" value="{{ current_operator.id }}">
 
-    <!-- CARD 1: DEMOGRAFI RESPONDEN -->
-    <div class="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-sm space-y-4">
+    <!-- CARD 1: IDENTITAS RESPONDEN (TOUCH-FRIENDLY) -->
+    <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs space-y-4">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-2.5">
-          <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-bold">1</span>
-          <h3 class="text-sm font-bold text-slate-900">Data Responden yang Diwawancarai</h3>
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-extrabold">1</span>
+          <h3 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide">Data Responden Yang Diwawancarai</h3>
         </div>
-        <span class="text-[11px] font-semibold text-slate-400">Sampel #{{ realisasi_count + 1 }}</span>
+        <span class="text-[10px] sm:text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          Sampel #{{ realisasi_count + 1 }}
+        </span>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <!-- Nama Responden -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Nama Responden (Boleh Panggilan)</label>
-          <input type="text" name="nama_responden" placeholder="Contoh: Ibu Rina / Pak RT" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nama Responden / Panggilan</label>
+          <input 
+            type="text" 
+            name="nama_responden" 
+            placeholder="Contoh: Ibu Rina / Pak RT" 
+            autocomplete="name"
+            class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          >
         </div>
 
+        <!-- No HP / WA -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">No. Kontak / WhatsApp (Opsional)</label>
-          <input type="text" name="kontak_responden" placeholder="08xxxxxxxxxx" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">No. Kontak / WhatsApp (Opsional)</label>
+          <input 
+            type="tel" 
+            inputmode="tel" 
+            name="kontak_responden" 
+            placeholder="08xxxxxxxxxx" 
+            class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          >
         </div>
 
+        <!-- Usia Responden -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Usia Responden (Tahun)</label>
-          <input type="number" name="usia" min="10" max="120" placeholder="Contoh: 35" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Usia Responden (Tahun)</label>
+          <input 
+            type="number" 
+            inputmode="numeric" 
+            pattern="[0-9]*" 
+            name="usia" 
+            min="10" 
+            max="120" 
+            placeholder="Contoh: 35" 
+            class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          >
         </div>
 
+        <!-- Jenis Kelamin: Large Touch Segmented Pills for Android -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">Jenis Kelamin</label>
-          <select name="jenis_kelamin" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
-            <option value="Laki-laki">Laki-laki</option>
-            <option value="Perempuan">Perempuan</option>
-            <option value="Rahasia">Memilih Tidak Menyebutkan</option>
-          </select>
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jenis Kelamin</label>
+          <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-xl">
+            <label class="cursor-pointer">
+              <input type="radio" name="jenis_kelamin" value="Laki-laki" checked class="peer sr-only">
+              <div class="py-2 text-center text-xs font-bold rounded-lg text-slate-600 peer-checked:bg-white peer-checked:text-emerald-700 peer-checked:shadow-xs transition">
+                Laki-laki
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="jenis_kelamin" value="Perempuan" class="peer sr-only">
+              <div class="py-2 text-center text-xs font-bold rounded-lg text-slate-600 peer-checked:bg-white peer-checked:text-emerald-700 peer-checked:shadow-xs transition">
+                Perempuan
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="jenis_kelamin" value="Rahasia" class="peer sr-only">
+              <div class="py-2 text-center text-xs font-bold rounded-lg text-slate-600 peer-checked:bg-white peer-checked:text-emerald-700 peer-checked:shadow-xs transition">
+                Rahasia
+              </div>
+            </label>
+          </div>
         </div>
 
+        <!-- Wilayah Wawancara -->
         <div class="sm:col-span-2">
-          <label class="block text-xs font-bold text-slate-700 mb-1">Wilayah / Alamat Wawancara</label>
-          <input type="text" name="alamat_wilayah" value="{{ current_operator.wilayah or '' }}" placeholder="Contoh: RT 02 RW 04 Kelurahan..." class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Wilayah / Alamat Wawancara</label>
+          <input 
+            type="text" 
+            name="alamat_wilayah" 
+            value="{{ current_operator.wilayah or '' }}" 
+            placeholder="Contoh: RT 02 RW 04 Kelurahan..." 
+            class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          >
         </div>
       </div>
     </div>
 
-    <!-- CARD 2+: DAFTAR PERTANYAAN -->
-    {% for q in questions %}
-    <div class="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-sm space-y-4 question-block" data-qid="{{ q.id }}">
-      
-      <div class="flex items-start gap-3">
-        <span class="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-extrabold shrink-0 mt-0.5">
-          {{ loop.index }}
+    <!-- CARD 2+: DAFTAR PERTANYAAN (TOUCH-FRIENDLY ANDROID) -->
+    <div class="space-y-4">
+      <div class="px-1 flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-list-ol text-emerald-600"></i>
+          <span>Daftar Pertanyaan ({{ questions|length }} Soal)</span>
         </span>
-        <div class="flex-1">
-          <h4 class="text-sm font-bold text-slate-900 leading-snug">
-            {{ q.teks_pertanyaan }}
-            {% if q.is_required %}
-              <span class="text-rose-500 ml-0.5" title="Wajib Diisi">*</span>
-            {% endif %}
-          </h4>
-          {% if q.panduan %}
-            <p class="text-xs text-slate-500 mt-1 italic leading-relaxed">
-              <i class="fa-regular fa-lightbulb text-amber-500 mr-1"></i>{{ q.panduan }}
-            </p>
-          {% endif %}
-        </div>
+        <span class="text-[11px] text-slate-400">Ketuk pilihan responden</span>
       </div>
 
-      <!-- INPUT RENDERING -->
-      <div class="pt-2 pl-1 sm:pl-10">
-
-        <!-- SHORT TEXT -->
-        {% if q.tipe_pertanyaan == 'short_text' %}
-          <input type="text" name="q_{{ q.id }}" {% if q.is_required %}required{% endif %} placeholder="Jawaban responden..." class="w-full px-4 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-
-        <!-- LONG TEXT -->
-        {% elif q.tipe_pertanyaan == 'long_text' %}
-          <textarea name="q_{{ q.id }}" rows="3" {% if q.is_required %}required{% endif %} placeholder="Tuliskan catatan atau masukan dari responden..." class="w-full px-4 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none leading-relaxed"></textarea>
-
-        <!-- RADIO (SINGLE CHOICE) -->
-        {% elif q.tipe_pertanyaan == 'radio' %}
-          <div class="space-y-2">
-            {% for opt in q.pilihan_opsi_list %}
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/20 cursor-pointer transition select-none">
-              <input type="radio" name="q_{{ q.id }}" value="{{ opt }}" {% if q.is_required %}required{% endif %} class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
-              <span class="text-xs sm:text-sm font-medium text-slate-800">{{ opt }}</span>
-            </label>
-            {% endfor %}
+      {% for q in questions %}
+      <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs space-y-3 question-block" data-qid="{{ q.id }}">
+        
+        <div class="flex items-start gap-2.5">
+          <span class="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-extrabold shrink-0 mt-0.5">
+            {{ loop.index }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
+              {{ q.teks_pertanyaan }}
+              {% if q.is_required %}
+                <span class="text-rose-500 ml-0.5" title="Wajib Diisi">*</span>
+              {% endif %}
+            </h4>
+            {% if q.panduan %}
+              <p class="text-[11px] text-slate-500 mt-1 italic leading-relaxed bg-amber-50/60 p-2 rounded-lg border border-amber-200/60 text-amber-800">
+                <i class="fa-regular fa-lightbulb text-amber-600 mr-1"></i>{{ q.panduan }}
+              </p>
+            {% endif %}
           </div>
+        </div>
 
-        <!-- CHECKBOX (MULTI CHOICE) -->
-        {% elif q.tipe_pertanyaan == 'checkbox' %}
-          <div class="space-y-2">
-            {% for opt in q.pilihan_opsi_list %}
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-teal-400 hover:bg-teal-50/20 cursor-pointer transition select-none">
-              <input type="checkbox" name="q_{{ q.id }}[]" value="{{ opt }}" class="w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500">
-              <span class="text-xs sm:text-sm font-medium text-slate-800">{{ opt }}</span>
-            </label>
-            {% endfor %}
-          </div>
+        <!-- INPUT RENDERING -->
+        <div class="pt-1">
 
-        <!-- RATING (STARS) -->
-        {% elif q.tipe_pertanyaan == 'rating' %}
-          <div class="star-rating-container" data-qid="{{ q.id }}" data-max="{{ q.rating_max or 5 }}">
-            <input type="hidden" name="q_{{ q.id }}" id="rating_input_{{ q.id }}" value="" {% if q.is_required %}required{% endif %}>
-            
-            <div class="flex items-center gap-2 flex-wrap">
-              <div class="flex items-center gap-1.5 text-2xl text-slate-300 star-rating" id="stars_{{ q.id }}">
+          <!-- SHORT TEXT -->
+          {% if q.tipe_pertanyaan == 'short_text' %}
+            <input 
+              type="text" 
+              name="q_{{ q.id }}" 
+              {% if q.is_required %}required{% endif %} 
+              placeholder="Ketik jawaban responden di sini..." 
+              class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            >
+
+          <!-- LONG TEXT -->
+          {% elif q.tipe_pertanyaan == 'long_text' %}
+            <textarea 
+              name="q_{{ q.id }}" 
+              rows="3" 
+              {% if q.is_required %}required{% endif %} 
+              placeholder="Tuliskan keterangan lengkap atau catatan responden..." 
+              class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none leading-relaxed"
+            ></textarea>
+
+          <!-- RADIO (SINGLE CHOICE) - TOUCH FRIENDLY CARDS -->
+          {% elif q.tipe_pertanyaan == 'radio' %}
+            <div class="space-y-2">
+              {% for opt in q.pilihan_opsi_list %}
+              <label class="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-emerald-400 active:bg-emerald-50/40 cursor-pointer transition select-none has-checked:bg-emerald-50 has-checked:border-emerald-500 has-checked:text-emerald-950">
+                <input type="radio" name="q_{{ q.id }}" value="{{ opt }}" {% if q.is_required %}required{% endif %} class="w-5 h-5 text-emerald-600 focus:ring-emerald-500 border-slate-300">
+                <span class="text-xs sm:text-sm font-semibold flex-1 leading-snug">{{ opt }}</span>
+              </label>
+              {% endfor %}
+            </div>
+
+          <!-- CHECKBOX (MULTI CHOICE) - TOUCH FRIENDLY CARDS -->
+          {% elif q.tipe_pertanyaan == 'checkbox' %}
+            <div class="space-y-2">
+              {% for opt in q.pilihan_opsi_list %}
+              <label class="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-teal-400 active:bg-teal-50/40 cursor-pointer transition select-none has-checked:bg-teal-50 has-checked:border-teal-500 has-checked:text-teal-950">
+                <input type="checkbox" name="q_{{ q.id }}[]" value="{{ opt }}" class="w-5 h-5 text-teal-600 rounded border-slate-300 focus:ring-teal-500">
+                <span class="text-xs sm:text-sm font-semibold flex-1 leading-snug">{{ opt }}</span>
+              </label>
+              {% endfor %}
+            </div>
+
+          <!-- RATING (TOUCH PILLS + STARS) -->
+          {% elif q.tipe_pertanyaan == 'rating' %}
+            <div class="star-rating-container p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5" data-qid="{{ q.id }}" data-max="{{ q.rating_max or 5 }}">
+              <input type="hidden" name="q_{{ q.id }}" id="rating_input_{{ q.id }}" value="" {% if q.is_required %}required{% endif %}>
+              
+              <!-- Stars display -->
+              <div class="flex items-center justify-center gap-2 text-3xl sm:text-4xl text-slate-300 star-rating py-1" id="stars_{{ q.id }}">
                 {% for i in range(1, (q.rating_max or 5) + 1) %}
-                  <i class="fa-solid fa-star star-item" data-value="{{ i }}" onclick="setStarRating({{ q.id }}, {{ i }})" onmouseover="hoverStarRating({{ q.id }}, {{ i }})" onmouseout="resetStarRating({{ q.id }})"></i>
+                  <i class="fa-solid fa-star star-item p-1" data-value="{{ i }}" onclick="setStarRating({{ q.id }}, {{ i }})"></i>
                 {% endfor %}
               </div>
-              <span class="text-xs font-bold text-slate-600 ml-2" id="rating_label_{{ q.id }}">Beri Penilaian</span>
+
+              <!-- Quick Number Touch Buttons (Ergonomic for Android thumb) -->
+              <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                {% for i in range(1, (q.rating_max or 5) + 1) %}
+                  <button 
+                    type="button" 
+                    onclick="setStarRating({{ q.id }}, {{ i }})"
+                    id="rate_btn_{{ q.id }}_{{ i }}"
+                    class="rate-btn-{{ q.id }} w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center active:scale-95 transition shadow-xs"
+                  >
+                    {{ i }}
+                  </button>
+                {% endfor %}
+              </div>
+
+              <p class="text-center text-xs font-bold text-slate-600" id="rating_label_{{ q.id }}">Ketuk bintang atau nomor nilai</p>
             </div>
-          </div>
 
-        <!-- DROPDOWN -->
-        {% elif q.tipe_pertanyaan == 'dropdown' %}
-          <select name="q_{{ q.id }}" {% if q.is_required %}required{% endif %} class="w-full px-4 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
-            <option value="">-- Pilih Jawaban Responden --</option>
-            {% for opt in q.pilihan_opsi_list %}
-              <option value="{{ opt }}">{{ opt }}</option>
-            {% endfor %}
-          </select>
+          <!-- DROPDOWN -->
+          {% elif q.tipe_pertanyaan == 'dropdown' %}
+            <div class="relative">
+              <select 
+                name="q_{{ q.id }}" 
+                {% if q.is_required %}required{% endif %} 
+                class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white appearance-none cursor-pointer pr-10"
+              >
+                <option value="">-- Pilih Salah Satu Jawaban --</option>
+                {% for opt in q.pilihan_opsi_list %}
+                  <option value="{{ opt }}">{{ opt }}</option>
+                {% endfor %}
+              </select>
+              <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                <i class="fa-solid fa-chevron-down text-xs"></i>
+              </div>
+            </div>
 
-        <!-- NUMBER -->
-        {% elif q.tipe_pertanyaan == 'number' %}
-          <input type="number" step="any" name="q_{{ q.id }}" {% if q.is_required %}required{% endif %} placeholder="Masukkan angka..." class="w-full max-w-xs px-4 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <!-- NUMBER -->
+          {% elif q.tipe_pertanyaan == 'number' %}
+            <input 
+              type="number" 
+              step="any" 
+              inputmode="decimal"
+              name="q_{{ q.id }}" 
+              {% if q.is_required %}required{% endif %} 
+              placeholder="Masukkan angka nilai..." 
+              class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            >
 
-        <!-- DATE -->
-        {% elif q.tipe_pertanyaan == 'date' %}
-          <input type="date" name="q_{{ q.id }}" {% if q.is_required %}required{% endif %} class="w-full max-w-xs px-4 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white">
+          <!-- DATE -->
+          {% elif q.tipe_pertanyaan == 'date' %}
+            <input 
+              type="date" 
+              name="q_{{ q.id }}" 
+              {% if q.is_required %}required{% endif %} 
+              class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 bg-white"
+            >
 
-        {% endif %}
+          {% endif %}
+
+        </div>
 
       </div>
-
+      {% endfor %}
     </div>
-    {% endfor %}
 
-    <!-- SUBMIT CARD -->
-    <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 text-center space-y-4">
-      <div class="flex items-center justify-center gap-2 text-xs text-slate-500">
+    <!-- ACTION BUTTONS: ERGONOMIC FULL-WIDTH FOR ANDROID MOBILE -->
+    <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200 text-center space-y-3">
+      <div class="flex items-center justify-center gap-1.5 text-xs text-slate-500">
         <i class="fa-solid fa-shield-check text-emerald-600"></i>
-        <span>Data akan otomatis tersimpan atas nama petugas: <strong>{{ current_operator.nama }}</strong></span>
+        <span>Tersimpan atas nama Petugas: <strong class="text-slate-700">{{ current_operator.nama }}</strong></span>
       </div>
 
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-        <a href="{{ url_for('operator_tugas') }}" class="w-full sm:w-auto px-6 py-3 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition">
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+        <button 
+          type="submit" 
+          id="btnSubmitSample"
+          class="w-full sm:flex-1 py-3.5 px-6 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 group cursor-pointer"
+        >
+          <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+          <span>Simpan Data Sampel #{{ realisasi_count + 1 }} & Lanjut</span>
+        </button>
+
+        <a 
+          href="{{ url_for('operator_tugas') }}" 
+          class="w-full sm:w-auto py-3 px-5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition inline-flex items-center justify-center"
+        >
           Batal & Kembali
         </a>
-        <button type="submit" class="w-full sm:w-auto px-8 py-3.5 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl transition shadow-lg shadow-emerald-500/20 inline-flex items-center justify-center gap-2">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <span>Simpan Data Sampel Ini</span>
-        </button>
       </div>
     </div>
 
@@ -217,7 +334,7 @@
 
 {% block extra_scripts %}
 <script>
-  // Star Rating System
+  // Star Rating & Number Button System
   const starRatings = {};
 
   function setStarRating(qid, val) {
@@ -225,18 +342,22 @@
     document.getElementById(`rating_input_${qid}`).value = val;
     renderStars(qid, val);
     
-    const labels = ['Sangat Buruk', 'Kurang Baik', 'Cukup', 'Baik / Puas', 'Sangat Memuaskan!'];
+    // Update number pill buttons
     const max = parseInt(document.querySelector(`.star-rating-container[data-qid="${qid}"]`).dataset.max) || 5;
-    const labelText = max === 5 && labels[val - 1] ? `${val} / ${max} (${labels[val - 1]})` : `${val} / ${max} Bintang`;
+    for (let i = 1; i <= max; i++) {
+      const btn = document.getElementById(`rate_btn_${qid}_${i}`);
+      if (btn) {
+        if (i === val) {
+          btn.className = `rate-btn-${qid} w-10 h-10 rounded-xl bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center shadow-md shadow-emerald-500/30 border border-emerald-600`;
+        } else {
+          btn.className = `rate-btn-${qid} w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center active:scale-95 transition shadow-xs`;
+        }
+      }
+    }
+
+    const labels = ['Sangat Buruk', 'Kurang Baik', 'Cukup', 'Baik / Puas', 'Sangat Memuaskan!'];
+    const labelText = max === 5 && labels[val - 1] ? `★ ${val} / ${max} (${labels[val - 1]})` : `★ ${val} dari ${max}`;
     document.getElementById(`rating_label_${qid}`).innerText = labelText;
-  }
-
-  function hoverStarRating(qid, val) {
-    renderStars(qid, val);
-  }
-
-  function resetStarRating(qid) {
-    renderStars(qid, starRatings[qid] || 0);
   }
 
   function renderStars(qid, val) {
@@ -254,5 +375,13 @@
       }
     });
   }
+
+  // Prevent double click on form submission
+  document.getElementById('operatorSurveyForm').addEventListener('submit', function() {
+    const btn = document.getElementById('btnSubmitSample');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan Sampel...';
+    btn.classList.add('opacity-80', 'cursor-not-allowed');
+  });
 </script>
 {% endblock %}

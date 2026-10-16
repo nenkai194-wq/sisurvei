@@ -1,43 +1,43 @@
 {% extends 'operator/base.html' %}
 
-{% block title %}Profil Petugas Enumerator - SiSurvei{% endblock %}
+{% block title %}Profil Petugas Enumerator - SiSurvei Mobile{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-3xl mx-auto space-y-4 sm:space-y-6">
 
-  <!-- TOP CARD PROFIL -->
-  <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm relative overflow-hidden">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+  <!-- TOP CARD PROFIL (RESPONSIF ANDROID) -->
+  <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/90 shadow-xs relative overflow-hidden">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
       
-      <div class="flex items-center gap-5 sm:gap-6">
-        <div class="relative">
+      <div class="flex items-center gap-3.5 sm:gap-5">
+        <div class="relative shrink-0">
           {% if current_operator.foto %}
-            <img src="{{ current_operator.foto if current_operator.foto.startswith('http') else url_for('static', filename=current_operator.foto) }}" alt="{{ current_operator.nama }}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl object-cover border-4 border-emerald-500 shadow-lg">
+            <img src="{{ current_operator.foto if current_operator.foto.startswith('http') else url_for('static', filename=current_operator.foto) }}" alt="{{ current_operator.nama }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 sm:border-4 border-emerald-500 shadow-md">
           {% else %}
-            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-extrabold text-3xl flex items-center justify-center shadow-lg">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-extrabold text-2xl flex items-center justify-center shadow-md">
               {{ current_operator.nama[0]|upper }}
             </div>
           {% endif %}
-          <span class="absolute -bottom-1 -right-1 p-1 bg-emerald-600 text-white rounded-full text-xs shadow-xs" title="Enumerator Terverifikasi">
-            <i class="fa-solid fa-check-circle"></i>
+          <span class="absolute -bottom-1 -right-1 p-1 bg-emerald-600 text-white rounded-full text-[10px] shadow-xs" title="Enumerator Terverifikasi">
+            <i class="fa-solid fa-check"></i>
           </span>
         </div>
 
-        <div>
-          <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span class="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">{{ current_operator.nip }}</span>
-            <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full {% if current_operator.status == 'Aktif' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-700{% endif %}">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+            <span class="font-mono text-[10px] sm:text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{{ current_operator.nip }}</span>
+            <span class="px-2 py-0.5 text-[9px] sm:text-[10px] font-bold rounded-full {% if current_operator.status == 'Aktif' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-700{% endif %}">
               {{ current_operator.status }}
             </span>
           </div>
 
-          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">{{ current_operator.nama }}</h2>
-          <p class="text-xs text-slate-500 mt-0.5">{{ current_operator.jabatan }} • Wilayah: <strong class="text-slate-700">{{ current_operator.wilayah or '-' }}</strong></p>
+          <h2 class="text-base sm:text-xl font-extrabold text-slate-900 tracking-tight leading-snug truncate">{{ current_operator.nama }}</h2>
+          <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5">{{ current_operator.jabatan }} • Wilayah: <strong class="text-slate-700">{{ current_operator.wilayah or '-' }}</strong></p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
-        <a href="{{ url_for('operator_tugas') }}" class="px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-500/20 inline-flex items-center gap-2">
+      <div class="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+        <a href="{{ url_for('operator_tugas') }}" class="w-full sm:w-auto px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 active:bg-emerald-700 rounded-xl transition shadow-sm inline-flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-list-check"></i>
           <span>Buka Tugas Survei</span>
         </a>
@@ -45,44 +45,44 @@
 
     </div>
 
-    <!-- STATISTIK KERJA -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100">
-      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-        <span class="text-[10px] uppercase font-bold text-slate-400 block">Survei Terdaftar</span>
-        <p class="text-2xl font-extrabold text-slate-900 mt-1">{{ total_survei }}</p>
+    <!-- STATISTIK KERJA (2x2 GRID ON MOBILE, 4 COLS ON DESKTOP) -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 mt-4 pt-4 border-t border-slate-100 text-center">
+      <div class="p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100">
+        <span class="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400 block">Survei Terdaftar</span>
+        <p class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-0.5">{{ total_survei }}</p>
       </div>
 
-      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-        <span class="text-[10px] uppercase font-bold text-slate-400 block">Total Target Sampel</span>
-        <p class="text-2xl font-extrabold text-indigo-600 mt-1">{{ total_target_sampel }}</p>
+      <div class="p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100">
+        <span class="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400 block">Target Sampel</span>
+        <p class="text-xl sm:text-2xl font-extrabold text-indigo-600 mt-0.5">{{ total_target_sampel }}</p>
       </div>
 
-      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-        <span class="text-[10px] uppercase font-bold text-slate-400 block">Sampel Diselesaikan</span>
-        <p class="text-2xl font-extrabold text-emerald-600 mt-1">{{ total_realisasi }}</p>
+      <div class="p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100">
+        <span class="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400 block">Sampel Selesai</span>
+        <p class="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">{{ total_realisasi }}</p>
       </div>
 
-      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 text-center">
-        <span class="text-[10px] uppercase font-bold text-slate-400 block">Capaian Kumulatif</span>
-        <p class="text-2xl font-extrabold text-emerald-600 mt-1">{{ persen_kumulatif }}%</p>
+      <div class="p-3 bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-100">
+        <span class="text-[9px] sm:text-[10px] uppercase font-bold text-slate-400 block">Capaian</span>
+        <p class="text-xl sm:text-2xl font-extrabold text-emerald-600 mt-0.5">{{ persen_kumulatif }}%</p>
       </div>
     </div>
   </div>
 
   <!-- FORM PERBARUI DATA DIRI & FOTO PROFIL -->
-  <div class="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
-    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-      <h3 class="text-base font-bold text-slate-900">Perbarui Informasi Data Diri & Foto Petugas</h3>
-      <p class="text-xs text-slate-500">Sesuaikan informasi kontak, wilayah penugasan, dan unggah foto profil terbaru Anda.</p>
+  <div class="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+    <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50">
+      <h3 class="text-sm sm:text-base font-bold text-slate-900">Perbarui Informasi Data Diri & Foto Petugas</h3>
+      <p class="text-[11px] sm:text-xs text-slate-500">Sesuaikan informasi kontak, wilayah penugasan, dan foto profil Anda</p>
     </div>
 
-    <form action="{{ url_for('operator_profil') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-6">
+    <form action="{{ url_for('operator_profil') }}" method="POST" enctype="multipart/form-data" class="p-4 sm:p-6 space-y-4 sm:space-y-5">
       
-      <!-- Upload Foto -->
-      <div class="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center gap-5">
+      <!-- Upload Foto (Touch/Camera Ready for Android) -->
+      <div class="p-3.5 sm:p-4 rounded-2xl border border-slate-200 bg-slate-50/60 flex flex-col sm:flex-row items-center gap-4">
         <div class="shrink-0">
           {% if current_operator.foto %}
-            <img id="previewAvatar" src="{{ current_operator.foto if current_operator.foto.startswith('http') else url_for('static', filename=current_operator.foto) }}" alt="{{ current_operator.nama }}" class="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500 shadow-sm">
+            <img id="previewAvatar" src="{{ current_operator.foto if current_operator.foto.startswith('http') else url_for('static', filename=current_operator.foto) }}" alt="{{ current_operator.nama }}" class="w-16 h-16 rounded-2xl object-cover border-2 border-emerald-500 shadow-xs">
           {% else %}
             <div id="previewAvatarPlaceholder" class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-800 font-extrabold text-xl flex items-center justify-center border border-emerald-300">
               {{ current_operator.nama[0]|upper }}
@@ -90,75 +90,126 @@
           {% endif %}
         </div>
 
-        <div class="flex-1 space-y-2 text-center sm:text-left">
-          <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider">Unggah File Foto Profil</label>
-          <div class="flex items-center gap-2 flex-wrap">
-            <input type="file" name="foto_file" accept="image/*" class="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer">
-          </div>
-          <p class="text-[11px] text-slate-400">Format: JPG, PNG, atau WEBP. Maks 5MB.</p>
+        <div class="flex-1 space-y-1.5 text-center sm:text-left w-full">
+          <label class="block text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center justify-center sm:justify-start gap-1.5">
+            <i class="fa-solid fa-camera text-emerald-600"></i>
+            <span>Unggah Foto Profil / Ambil Foto</span>
+          </label>
+          <input 
+            type="file" 
+            name="foto_file" 
+            accept="image/*" 
+            class="w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 active:file:bg-emerald-100 cursor-pointer"
+          >
+          <p class="text-[10px] text-slate-400">Dukungan: Kamera HP Android, JPG, PNG, atau WEBP.</p>
         </div>
       </div>
 
       <!-- Informasi Akun (Readonly NIP & Jabatan) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">NIP / ID Petugas (Terkunci)</label>
-          <input type="text" value="{{ current_operator.nip }}" disabled class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500 font-mono">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">NIP / ID Petugas (Terkunci)</label>
+          <input type="text" value="{{ current_operator.nip }}" disabled class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500 font-mono">
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Jabatan / Peran Sistem</label>
-          <input type="text" value="{{ current_operator.jabatan }}" disabled class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jabatan / Peran Sistem</label>
+          <input type="text" value="{{ current_operator.jabatan }}" disabled class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-200 rounded-xl bg-slate-100 text-slate-500">
         </div>
       </div>
 
-      <!-- Input Data Diri yang Bisa Diubah -->
+      <!-- Input Data Diri yang Bisa Diubah (Font size 16px to prevent auto-zoom on mobile) -->
       <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Nama Lengkap Petugas <span class="text-rose-500">*</span></label>
-        <input type="text" name="nama" value="{{ current_operator.nama }}" required class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nama Lengkap Petugas <span class="text-rose-500">*</span></label>
+        <input 
+          type="text" 
+          name="nama" 
+          value="{{ current_operator.nama }}" 
+          required 
+          autocomplete="name"
+          class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+        >
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">No. WhatsApp / HP</label>
-          <input type="text" name="no_hp" value="{{ current_operator.no_hp or '' }}" placeholder="08xxxxxxxxxx" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">No. WhatsApp / HP</label>
+          <input 
+            type="tel" 
+            inputmode="tel" 
+            name="no_hp" 
+            value="{{ current_operator.no_hp or '' }}" 
+            placeholder="08xxxxxxxxxx" 
+            class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          >
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Email Petugas</label>
-          <input type="email" name="email" value="{{ current_operator.email or '' }}" placeholder="nama@email.com" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Email Petugas</label>
+          <input 
+            type="email" 
+            inputmode="email" 
+            name="email" 
+            value="{{ current_operator.email or '' }}" 
+            placeholder="nama@email.com" 
+            class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+          >
         </div>
       </div>
 
       <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Wilayah Penugasan</label>
-        <input type="text" name="wilayah" value="{{ current_operator.wilayah or '' }}" placeholder="Contoh: Bandung, Jawa Barat" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Wilayah Penugasan</label>
+        <input 
+          type="text" 
+          name="wilayah" 
+          value="{{ current_operator.wilayah or '' }}" 
+          placeholder="Contoh: Bandung, Jawa Barat" 
+          class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+        >
       </div>
 
       <div>
-        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Atau Masukkan Tautan URL Foto Profil</label>
-        <input type="url" name="foto_url" value="{{ current_operator.foto if current_operator.foto and current_operator.foto.startswith('http') else '' }}" placeholder="https://..." class="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Atau Tempel Tautan URL Foto Profil</label>
+        <input 
+          type="url" 
+          name="foto_url" 
+          value="{{ current_operator.foto if current_operator.foto and current_operator.foto.startswith('http') else '' }}" 
+          placeholder="https://..." 
+          class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+        >
       </div>
 
       <!-- Ubah Kata Sandi -->
-      <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200">
-        <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+      <div class="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-1.5">
+        <label class="block text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
           <i class="fa-solid fa-key text-amber-600"></i>
-          <span>Ganti Kata Sandi Baru (Opsional)</span>
+          <span>Ganti Kata Sandi Akun (Opsional)</span>
         </label>
-        <input type="password" name="password_baru" placeholder="Masukkan sandi baru jika ingin mengganti" class="w-full px-3.5 py-2 text-xs sm:text-sm border border-amber-300 rounded-xl bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none">
-        <p class="text-[11px] text-amber-700/80 mt-1">Biarkan kosong jika tetap menggunakan kata sandi saat ini.</p>
+        <input 
+          type="password" 
+          name="password_baru" 
+          placeholder="Masukkan sandi baru jika ingin mengubah" 
+          class="w-full px-3.5 py-2.5 text-base sm:text-sm border border-amber-300 rounded-xl bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+        >
+        <p class="text-[10px] text-amber-700/80">Biarkan kosong jika tetap menggunakan kata sandi saat ini.</p>
       </div>
 
-      <!-- Action -->
-      <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
-        <a href="{{ url_for('operator_tugas') }}" class="px-5 py-2.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
-          Batal
-        </a>
-        <button type="submit" class="px-6 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-500/20 inline-flex items-center gap-2">
-          <i class="fa-solid fa-floppy-disk"></i>
+      <!-- Action Buttons: Ergonomic Full-width on Android -->
+      <div class="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end gap-2.5">
+        <button 
+          type="submit" 
+          class="w-full sm:w-auto px-6 py-3.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-500/20 inline-flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <i class="fa-solid fa-floppy-disk text-base"></i>
           <span>Simpan Perubahan Profil</span>
         </button>
+
+        <a 
+          href="{{ url_for('operator_tugas') }}" 
+          class="w-full sm:w-auto px-5 py-3 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition text-center inline-flex items-center justify-center"
+        >
+          Batal
+        </a>
       </div>
 
     </form>
