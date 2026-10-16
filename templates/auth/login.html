@@ -110,13 +110,15 @@
               type="text" 
               name="identifier" 
               id="identifierInput" 
+              value=""
               required 
               autofocus 
-              placeholder="Contoh: PTG-001" 
+              autocomplete="username"
+              placeholder="Masukkan NIP Petugas Lapangan" 
               class="w-full pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition font-mono tracking-wide"
             >
           </div>
-          <p id="identifierHint" class="mt-1 text-[11px] text-slate-400">Masukkan Nomor Induk Petugas Anda (Contoh: PTG-001)</p>
+          <p id="identifierHint" class="mt-1 text-[11px] text-slate-400">Masukkan Nomor Induk Petugas (NIP) Anda</p>
         </div>
 
         <!-- Input Kata Sandi -->
@@ -134,8 +136,10 @@
               type="password" 
               name="password" 
               id="passwordInput" 
+              value=""
               required 
-              placeholder="••••••••" 
+              autocomplete="current-password"
+              placeholder="Masukkan Kata Sandi" 
               class="w-full pl-10 pr-10 py-2.5 text-base sm:text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
             >
             <button 
@@ -188,81 +192,10 @@
         </div>
       </form>
 
-      <!-- 3. 1-CLICK DEMO LOGIN FILL SECTION -->
-      <div class="mt-5 pt-4 border-t border-slate-800">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-bolt text-amber-400"></i>
-            1-Click Demo Login
-          </span>
-          <span class="text-[10px] text-slate-500">Klik langsung terisi</span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-          <!-- Demo Petugas 1 -->
-          <button 
-            type="button" 
-            onclick="fillDemo('operator', 'PTG-001', 'password123')" 
-            class="p-2.5 text-left rounded-xl bg-slate-950/60 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-600/50 transition group"
-          >
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-slate-200 group-hover:text-emerald-300">Budi Santoso</span>
-              <span class="text-[10px] font-mono bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded">PTG-001</span>
-            </div>
-            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-              <i class="fa-solid fa-clipboard-user text-emerald-400"></i>
-              <span>Petugas Enumerator</span>
-            </div>
-          </button>
-
-          <!-- Demo Petugas 2 -->
-          <button 
-            type="button" 
-            onclick="fillDemo('operator', 'PTG-002', 'password123')" 
-            class="p-2.5 text-left rounded-xl bg-slate-950/60 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-600/50 transition group"
-          >
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-slate-200 group-hover:text-emerald-300">Siti Aminah</span>
-              <span class="text-[10px] font-mono bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded">PTG-002</span>
-            </div>
-            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-              <i class="fa-solid fa-clipboard-user text-emerald-400"></i>
-              <span>Petugas Enumerator</span>
-            </div>
-          </button>
-
-          <!-- Demo Petugas 3 -->
-          <button 
-            type="button" 
-            onclick="fillDemo('operator', 'PTG-003', 'password123')" 
-            class="p-2.5 text-left rounded-xl bg-slate-950/60 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-600/50 transition group"
-          >
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-slate-200 group-hover:text-emerald-300">Ahmad Fauzi</span>
-              <span class="text-[10px] font-mono bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded">PTG-003</span>
-            </div>
-            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-              <i class="fa-solid fa-clipboard-user text-emerald-400"></i>
-              <span>Petugas Enumerator</span>
-            </div>
-          </button>
-
-          <!-- Demo Admin -->
-          <button 
-            type="button" 
-            onclick="fillDemo('admin', 'admin', 'admin123')" 
-            class="p-2.5 text-left rounded-xl bg-slate-950/60 hover:bg-blue-950/40 border border-slate-800 hover:border-blue-600/50 transition group"
-          >
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-slate-200 group-hover:text-blue-300">Admin Utama</span>
-              <span class="text-[10px] font-mono bg-blue-900/60 text-blue-300 px-1.5 py-0.5 rounded">admin</span>
-            </div>
-            <div class="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-              <i class="fa-solid fa-shield-halved text-blue-400"></i>
-              <span>Administrator</span>
-            </div>
-          </button>
-        </div>
+      <!-- INFO PERLINDUNGAN & INPUT MANUAL -->
+      <div class="mt-4 pt-3.5 border-t border-slate-800/80 flex items-center justify-center gap-2 text-[11px] text-slate-400 text-center">
+        <i class="fa-solid fa-shield-halved text-emerald-400 shrink-0"></i>
+        <span>Kerahasiaan Terjaga: Isian akun dan kata sandi wajib diisi manual demi keamanan data.</span>
       </div>
 
       <!-- 6. KARTU AKSES KHUSUS HP ANDROID (WIFI / LAN) -->
@@ -374,7 +307,7 @@
         // Input Fields styling
         label.innerHTML = 'Username / Email Administrator <span class="text-blue-400">*</span>';
         icon.className = "fa-solid fa-user-shield text-sm text-blue-400";
-        input.placeholder = "admin atau admin@survei.go.id";
+        input.placeholder = "Masukkan Username atau Email";
         input.className = "w-full pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition font-sans";
         hint.textContent = "Masukkan username atau email akun Administrator Anda";
 
@@ -391,9 +324,9 @@
         // Input Fields styling
         label.innerHTML = 'NIP Petugas Lapangan <span class="text-emerald-400">*</span>';
         icon.className = "fa-solid fa-id-badge text-sm text-emerald-400";
-        input.placeholder = "Contoh: PTG-001";
+        input.placeholder = "Masukkan NIP Petugas Lapangan";
         input.className = "w-full pl-10 pr-4 py-2.5 text-base sm:text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition font-mono tracking-wide";
-        hint.textContent = "Masukkan Nomor Induk Petugas Anda (Contoh: PTG-001)";
+        hint.textContent = "Masukkan Nomor Induk Petugas (NIP) Anda";
 
         // Submit Button styling
         submitBtn.className = "w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 group cursor-pointer";
@@ -412,18 +345,13 @@
       }
     }
 
-    function fillDemo(role, identifier, password) {
-      onRoleChange(role);
-      document.getElementById('identifierInput').value = identifier;
-      document.getElementById('passwordInput').value = password;
-      
-      // Visual feedback blink
-      const form = document.getElementById('loginForm');
-      form.classList.add('ring-2', role === 'admin' ? 'ring-blue-500' : 'ring-emerald-500');
-      setTimeout(() => {
-        form.classList.remove('ring-2', 'ring-blue-500', 'ring-emerald-500');
-      }, 400);
-    }
+    // Pastikan seluruh isian akun dan kata sandi selalu kosong saat halaman dibuka
+    document.addEventListener('DOMContentLoaded', function() {
+      const idInput = document.getElementById('identifierInput');
+      const pwdInput = document.getElementById('passwordInput');
+      if (idInput) idInput.value = '';
+      if (pwdInput) pwdInput.value = '';
+    });
 
     function showQrModal() {
       document.getElementById('modalQrAndroid').classList.remove('hidden');

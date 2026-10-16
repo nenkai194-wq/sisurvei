@@ -46,14 +46,17 @@ def run_tests():
     assert '/login' in res.headers['Location']
     print("    -> Passed! Operator route protected.")
 
-    print("[4] Testing GET /login (Login Page UI)...")
+    print("[4] Testing GET /login (Login Page UI with Clean & Empty Manual Inputs)...")
     res = client.get('/login')
     assert res.status_code == 200
     assert b"SiSurvei" in res.data
     assert b"Petugas / Enumerator" in res.data
     assert b"Administrator" in res.data
-    assert b"1-Click Demo Login" in res.data
-    print("    -> Passed! Login UI loads with dual role tabs.")
+    assert b"1-Click Demo Login" not in res.data
+    assert b'id="identifierInput"' in res.data
+    assert b'id="passwordInput"' in res.data
+    assert b'value=""' in res.data
+    print("    -> Passed! Login UI loads cleanly with empty inputs and no exposed demo credentials.")
 
     print("[5] Testing GET /s/SRV-2026-001 (Public Respondent Form without login)...")
     res = client.get('/s/SRV-2026-001')
