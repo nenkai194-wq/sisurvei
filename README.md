@@ -85,7 +85,7 @@ python app.py
 ```
 
 Setelah server aktif, buka browser Anda di:
-👉 **[http://127.0.0.1:5000](http://127.0.0.1:5000)**
+👉 **[http://127.0.0.1:5005](http://127.0.0.1:5005)**
 
 ---
 

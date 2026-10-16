@@ -12,7 +12,7 @@ if not exist sisurvei.db (
 )
 echo.
 echo Menjalankan server aplikasi...
-echo Buka browser dan akses: http://127.0.0.1:5000
+echo Buka browser dan akses: http://127.0.0.1:5005
 echo Tekan CTRL + C untuk menghentikan server.
 echo.
 python app.py
