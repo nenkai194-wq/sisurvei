@@ -77,50 +77,19 @@
 
     <!-- Card Login -->
     <div class="bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60">
-      
-      <!-- ROLE SELECTOR TABS -->
-      <div class="mb-6">
-        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Pilih Level Akses Anda:</label>
-        <div class="grid grid-cols-2 gap-1.5 p-1 bg-slate-950/80 rounded-2xl border border-slate-800/80">
-          
-          <!-- Tab 1: Operator Lapangan -->
-          <button type="button" id="tabOperatorBtn" onclick="switchRole('operator')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-white bg-emerald-600 shadow-md shadow-emerald-600/30">
-            <i class="fa-solid fa-clipboard-user text-sm"></i>
-            <span>Petugas / Enumerator</span>
-          </button>
-          
-          <!-- Tab 2: Administrator -->
-          <button type="button" id="tabAdminBtn" onclick="switchRole('admin')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-slate-400 hover:text-slate-200">
-            <i class="fa-solid fa-shield-halved text-sm"></i>
-            <span>Administrator</span>
-          </button>
-
-        </div>
-      </div>
 
       <!-- FORM LOGIN -->
       <form id="loginForm" action="{{ url_for('login') }}" method="POST" class="space-y-4">
-        <!-- Hidden input role ('operator' or 'admin') -->
-        <input type="hidden" name="role" id="roleInput" value="operator">
         <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
 
-        <!-- Role Badge Indicator -->
-        <div id="roleBadgeContainer" class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span id="roleBadgeText" class="font-semibold">Masuk sebagai Petugas Enumerator</span>
-          </div>
-          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-200 border border-emerald-700/50" id="roleBadgeSub">Gunakan NIP</span>
-        </div>
-
-        <!-- Identifier Input: NIP (for Operator) or Username (for Admin) -->
+        <!-- 1. IDENTIFIER INPUT (NIP / USERNAME) -->
         <div>
           <label for="identifierInput" id="identifierLabel" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
             NIP Petugas Lapangan <span class="text-emerald-400">*</span>
           </label>
           <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <i id="identifierIcon" class="fa-solid fa-id-badge text-sm"></i>
+              <i id="identifierIcon" class="fa-solid fa-id-badge text-sm text-emerald-400"></i>
             </div>
             <input 
               type="text" 
@@ -135,7 +104,7 @@
           <p id="identifierHint" class="mt-1 text-[11px] text-slate-400">Masukkan Nomor Induk Petugas Anda (Contoh: PTG-001)</p>
         </div>
 
-        <!-- Password Input -->
+        <!-- 2. KATA SANDI (PASSWORD) -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
             <label for="passwordInput" class="block text-xs font-bold uppercase tracking-wider text-slate-300">
@@ -165,7 +134,33 @@
           </div>
         </div>
 
-        <!-- Submit Button -->
+        <!-- 3. LEVEL AKSES (DROPDOWN DI BAWAH VARIABEL KATA SANDI) -->
+        <div>
+          <label for="roleSelect" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5 flex items-center justify-between">
+            <span>Level Akses Masuk <span class="text-emerald-400" id="roleRequiredStar">*</span></span>
+            <span id="roleBadgeSub" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-200 border border-emerald-700/50">Petugas Enumerator</span>
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i id="roleSelectIcon" class="fa-solid fa-clipboard-user text-sm text-emerald-400"></i>
+            </div>
+            <select 
+              name="role" 
+              id="roleSelect" 
+              onchange="onRoleChange(this.value)"
+              class="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition appearance-none cursor-pointer"
+            >
+              <option value="operator" class="bg-slate-900 text-white">Petugas / Enumerator</option>
+              <option value="admin" class="bg-slate-900 text-white">Administrator</option>
+            </select>
+            <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+          </div>
+          <p id="roleSelectHint" class="mt-1 text-[11px] text-slate-400">Pilih peran akun yang sesuai: Petugas / Enumerator atau Administrator</p>
+        </div>
+
+        <!-- 4. SUBMIT BUTTON -->
         <div class="pt-2">
           <button 
             type="submit" 
@@ -275,65 +270,58 @@
 
   </div>
 
-  <!-- JavaScript for Tabs & Demo Fill -->
+  <!-- JavaScript for Role Dropdown & Demo Fill -->
   <script>
-    function switchRole(role) {
-      const roleInput = document.getElementById('roleInput');
-      const tabOperatorBtn = document.getElementById('tabOperatorBtn');
-      const tabAdminBtn = document.getElementById('tabAdminBtn');
-      const badgeBox = document.getElementById('roleBadgeContainer');
-      const badgeText = document.getElementById('roleBadgeText');
-      const badgeSub = document.getElementById('roleBadgeSub');
+    function onRoleChange(role) {
+      const roleSelect = document.getElementById('roleSelect');
+      const roleSelectIcon = document.getElementById('roleSelectIcon');
+      const roleBadgeSub = document.getElementById('roleBadgeSub');
+      const roleRequiredStar = document.getElementById('roleRequiredStar');
       const label = document.getElementById('identifierLabel');
       const icon = document.getElementById('identifierIcon');
       const input = document.getElementById('identifierInput');
       const hint = document.getElementById('identifierHint');
       const submitBtn = document.getElementById('submitBtn');
 
-      roleInput.value = role;
+      if (roleSelect.value !== role) {
+        roleSelect.value = role;
+      }
 
       if (role === 'admin') {
-        // Active Admin Tab style
-        tabAdminBtn.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-white bg-blue-600 shadow-md shadow-blue-600/30";
-        tabOperatorBtn.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-slate-400 hover:text-slate-200";
+        // Dropdown styling
+        roleSelect.className = "w-full pl-10 pr-10 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none cursor-pointer";
+        roleSelectIcon.className = "fa-solid fa-shield-halved text-sm text-blue-400";
+        roleBadgeSub.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-blue-900/60 text-blue-200 border border-blue-700/50";
+        roleBadgeSub.textContent = "Administrator";
+        roleRequiredStar.className = "text-blue-400";
 
-        // Badge Admin
-        badgeBox.className = "flex items-center justify-between p-2.5 rounded-xl bg-blue-950/50 border border-blue-500/30 text-blue-300 text-xs";
-        badgeText.textContent = "Masuk sebagai Administrator Sistem";
-        badgeSub.textContent = "Username / Email";
-        badgeSub.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-blue-900/60 text-blue-200 border border-blue-700/50";
-
-        // Input Fields
+        // Input Fields styling
         label.innerHTML = 'Username / Email Administrator <span class="text-blue-400">*</span>';
-        icon.className = "fa-solid fa-user-shield text-sm";
+        icon.className = "fa-solid fa-user-shield text-sm text-blue-400";
         input.placeholder = "admin atau admin@survei.go.id";
         input.className = "w-full pl-10 pr-4 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition font-sans";
-        hint.textContent = "Masukkan username admin (contoh: admin)";
+        hint.textContent = "Masukkan username atau email akun Administrator Anda";
 
-        // Submit Button
+        // Submit Button styling
         submitBtn.className = "w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 group cursor-pointer";
       } else {
-        // Active Operator Tab style
-        tabOperatorBtn.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-white bg-emerald-600 shadow-md shadow-emerald-600/30";
-        tabAdminBtn.className = "flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all duration-200 text-slate-400 hover:text-slate-200";
+        // Dropdown styling
+        roleSelect.className = "w-full pl-10 pr-10 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition appearance-none cursor-pointer";
+        roleSelectIcon.className = "fa-solid fa-clipboard-user text-sm text-emerald-400";
+        roleBadgeSub.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-200 border border-emerald-700/50";
+        roleBadgeSub.textContent = "Petugas Enumerator";
+        roleRequiredStar.className = "text-emerald-400";
 
-        // Badge Operator
-        badgeBox.className = "flex items-center justify-between p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-emerald-300 text-xs";
-        badgeText.textContent = "Masuk sebagai Petugas Enumerator";
-        badgeSub.textContent = "Gunakan NIP";
-        badgeSub.className = "text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-200 border border-emerald-700/50";
-
-        // Input Fields
+        // Input Fields styling
         label.innerHTML = 'NIP Petugas Lapangan <span class="text-emerald-400">*</span>';
-        icon.className = "fa-solid fa-id-badge text-sm";
+        icon.className = "fa-solid fa-id-badge text-sm text-emerald-400";
         input.placeholder = "Contoh: PTG-001";
         input.className = "w-full pl-10 pr-4 py-2.5 text-sm bg-slate-950/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition font-mono tracking-wide";
         hint.textContent = "Masukkan Nomor Induk Petugas Anda (Contoh: PTG-001)";
 
-        // Submit Button
+        // Submit Button styling
         submitBtn.className = "w-full py-3 px-4 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 group cursor-pointer";
       }
-      input.focus();
     }
 
     function togglePasswordVisibility() {
@@ -349,7 +337,7 @@
     }
 
     function fillDemo(role, identifier, password) {
-      switchRole(role);
+      onRoleChange(role);
       document.getElementById('identifierInput').value = identifier;
       document.getElementById('passwordInput').value = password;
       
