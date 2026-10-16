@@ -1,4 +1,4 @@
-# 📊 Simanja (SiSurvei) - Sistem Informasi & Manajemen Kegiatan Survei Terpadu
+# 📊 SiSurvei - Sistem Informasi & Manajemen Kegiatan Survei Terpadu
 
 Aplikasi web modern, responsif, dan komprehensif untuk mengelola seluruh siklus kegiatan survei lapangan maupun survei publik: mulai dari pembuatan instrumen survei, perancangan aneka tipe pertanyaan secara visual (drag-and-drop & inline editor), pengelolaan data petugas/enumerator lapangan, pengisian kuisioner oleh responden atau petugas dengan sensor GPS titik koordinat dan peta interaktif, portal khusus petugas yang kompatibel dengan HP Android, hingga dashboard hasil survei interaktif dengan visualisasi data otomatis dan ekspor laporan ke Excel/CSV.
 
