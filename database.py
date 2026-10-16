@@ -112,6 +112,7 @@ def init_db():
             kontak_responden TEXT,
             usia INTEGER,
             jenis_kelamin TEXT,
+            pendidikan_terakhir TEXT,
             alamat_wilayah TEXT,
             ip_address TEXT,
             waktu_mulai DATETIME,
@@ -120,6 +121,12 @@ def init_db():
             FOREIGN KEY (petugas_id) REFERENCES petugas(id) ON DELETE SET NULL
         )
     ''')
+
+    # Migration check untuk pendidikan_terakhir jika tabel responden sudah ada
+    cursor.execute("PRAGMA table_info(responden)")
+    resp_cols = [r[1] for r in cursor.fetchall()]
+    if 'pendidikan_terakhir' not in resp_cols:
+        cursor.execute("ALTER TABLE responden ADD COLUMN pendidikan_terakhir TEXT")
     
     # 6. Tabel Jawaban
     cursor.execute('''

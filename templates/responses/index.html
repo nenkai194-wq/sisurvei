@@ -81,7 +81,10 @@
               <span class="text-xs font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mr-1">{{ r.kode_survei }}</span>
               <a href="{{ url_for('survei_hasil', id=r.survei_id) }}" class="hover:text-blue-600 hover:underline">{{ r.judul_survei }}</a>
             </td>
-            <td class="py-3 px-4 text-slate-600">{{ r.jenis_kelamin or '-' }} • {{ r.usia or '-' }} th</td>
+            <td class="py-3 px-4 text-slate-600">
+              <div>{{ r.jenis_kelamin or '-' }} • {{ r.usia or '-' }} th</div>
+              <div class="text-[11px] text-slate-400 font-medium">{{ r.pendidikan_terakhir or '-' }}</div>
+            </td>
             <td class="py-3 px-4 text-slate-600">{{ r.alamat_wilayah or '-' }}</td>
             <td class="py-3 px-4">
               {% if r.nama_petugas %}
@@ -179,10 +182,14 @@
         subtitle.innerText = `${r.judul_survei} • Waktu: ${r.waktu_selesai}`;
 
         let html = `
-          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-4">
+          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs mb-4">
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Usia / Gender</span>
               <span class="font-bold text-slate-800">${r.usia ? r.usia + ' Tahun' : '-'} / ${r.jenis_kelamin || '-'}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Pendidikan</span>
+              <span class="font-bold text-slate-800">${r.pendidikan_terakhir || '-'}</span>
             </div>
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Kontak</span>

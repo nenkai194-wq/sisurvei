@@ -182,7 +182,10 @@
                     <tr class="hover:bg-slate-50">
                       <td class="py-2 px-3 text-slate-400 font-mono">{{ loop.index }}</td>
                       <td class="py-2 px-3 font-bold text-slate-800">{{ r.nama_responden or 'Anonim' }}</td>
-                      <td class="py-2 px-3 text-slate-500">{{ r.jenis_kelamin or '-' }}, {{ r.usia or '-' }} th</td>
+                      <td class="py-2 px-3 text-slate-500">
+                        <div>{{ r.jenis_kelamin or '-' }}, {{ r.usia or '-' }} th</div>
+                        <div class="text-[10px] text-slate-400">{{ r.pendidikan_terakhir or '-' }}</div>
+                      </td>
                       <td class="py-2 px-3 text-slate-500">{{ r.alamat_wilayah or '-' }}</td>
                       <td class="py-2 px-3 text-slate-400">{{ r.waktu_selesai|format_datetime }}</td>
                       <td class="py-2 px-3 text-center">
@@ -279,6 +282,7 @@
         let html = `
           <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1 mb-3">
             <p><strong>Demografi:</strong> ${r.jenis_kelamin || '-'}, ${r.usia || '-'} tahun</p>
+            <p><strong>Pendidikan Terakhir:</strong> ${r.pendidikan_terakhir || '-'}</p>
             <p><strong>Wilayah:</strong> ${r.alamat_wilayah || '-'}</p>
             <p><strong>Kontak:</strong> ${r.kontak_responden || '-'}</p>
           </div>

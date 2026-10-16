@@ -705,6 +705,7 @@ def survei_isi(kode_survei):
             except ValueError:
                 usia = None
         jenis_kelamin = request.form.get('jenis_kelamin', 'Rahasia')
+        pendidikan_terakhir = request.form.get('pendidikan_terakhir', '').strip() or None
         alamat_wilayah = request.form.get('alamat_wilayah', '').strip()
         
         # Petugas penginput
@@ -714,9 +715,9 @@ def survei_isi(kode_survei):
         ip_addr = request.remote_addr or '127.0.0.1'
         
         cursor.execute('''
-            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, alamat_wilayah, ip_address, waktu_selesai)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (survei['id'], petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, alamat_wilayah, ip_addr))
+            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, alamat_wilayah, ip_address, waktu_selesai)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (survei['id'], petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, alamat_wilayah, ip_addr))
         responden_id = cursor.lastrowid
         
         # Simpan setiap jawaban
@@ -1064,7 +1065,7 @@ def survei_export_excel(id):
     ws["A2"].font = Font(size=10, italic=True, color="4B5563")
     
     # Headers baris 4
-    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "No HP/Kontak", "Usia", "Jenis Kelamin", "Wilayah / Alamat", "Petugas Penginput"]
+    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "No HP/Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Wilayah / Alamat", "Petugas Penginput"]
     for q in pertanyaan_list:
         headers.append(f"Q{q['urutan']}: {q['teks_pertanyaan']}")
         
@@ -1087,6 +1088,7 @@ def survei_export_excel(id):
             r['kontak_responden'] or '-',
             r['usia'] if r['usia'] else '-',
             r['jenis_kelamin'] or '-',
+            r['pendidikan_terakhir'] or '-',
             r['alamat_wilayah'] or '-',
             r['nama_petugas'] or 'Mandiri (Publik)'
         ]
@@ -1167,7 +1169,7 @@ def survei_export_csv(id):
     out_stream = io.StringIO()
     writer = csv.writer(out_stream)
     
-    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "Kontak", "Usia", "Jenis Kelamin", "Wilayah", "Petugas Penginput"]
+    headers = ["No", "ID Responden", "Waktu Pengisian", "Nama Responden", "Kontak", "Usia", "Jenis Kelamin", "Pendidikan Terakhir", "Wilayah", "Petugas Penginput"]
     for q in pertanyaan_list:
         headers.append(f"Q{q['urutan']}: {q['teks_pertanyaan']}")
     writer.writerow(headers)
@@ -1181,6 +1183,7 @@ def survei_export_csv(id):
             r['kontak_responden'] or '',
             r['usia'] or '',
             r['jenis_kelamin'] or '',
+            r['pendidikan_terakhir'] or '',
             r['alamat_wilayah'] or '',
             r['nama_petugas'] or 'Mandiri'
         ]
@@ -1644,12 +1647,13 @@ def operator_survei_isi(survei_id):
         usia = request.form.get('usia')
         usia = int(usia) if usia and usia.isdigit() else None
         jenis_kelamin = request.form.get('jenis_kelamin', 'Rahasia')
+        pendidikan_terakhir = request.form.get('pendidikan_terakhir', '').strip() or None
         alamat_wilayah = request.form.get('alamat_wilayah', '').strip()
         
         cursor.execute('''
-            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, alamat_wilayah, ip_address, waktu_selesai)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (survei_id, current_op['id'], nama_responden, kontak_responden, usia, jenis_kelamin, alamat_wilayah, request.remote_addr or '127.0.0.1'))
+            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, alamat_wilayah, ip_address, waktu_selesai)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (survei_id, current_op['id'], nama_responden, kontak_responden, usia, jenis_kelamin, pendidikan_terakhir, alamat_wilayah, request.remote_addr or '127.0.0.1'))
         resp_id = cursor.lastrowid
         
         for q in questions:

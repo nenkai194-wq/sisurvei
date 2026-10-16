@@ -61,6 +61,7 @@ def run_tests():
         'kontak_responden': '081234567890',
         'usia': '29',
         'jenis_kelamin': 'Laki-laki',
+        'pendidikan_terakhir': 'Sarjana (S1)',
         'alamat_wilayah': 'Jakarta Pusat',
         'petugas_id': str(p_id),
     }
@@ -83,7 +84,13 @@ def run_tests():
     res = client.post('/s/SRV-2026-001', data=post_data, follow_redirects=True)
     assert res.status_code == 200
     assert b"Terima Kasih" in res.data
-    print("    -> Passed! Public respondent response submitted successfully.")
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT pendidikan_terakhir FROM responden WHERE nama_responden = 'Responden Tester Publik' ORDER BY id DESC LIMIT 1")
+    row_p = c.fetchone()
+    conn.close()
+    assert row_p and row_p[0] == 'Sarjana (S1)', f"Expected 'Sarjana (S1)', got {row_p}"
+    print("    -> Passed! Public respondent response submitted and pendidikan_terakhir persisted correctly.")
 
     print("\n--- PHASE 2: TESTING AUTHENTICATION (ADMIN & OPERATOR) ---")
 
@@ -132,11 +139,15 @@ def run_tests():
     assert b"Visualisasi Analisis Hasil Kuisioner" in res.data
     print("    -> Passed! Results analytics OK.")
 
-    print(f"[14] Testing GET /survei/{s_id}/export/excel as Authenticated Admin...")
+    print(f"[14] Testing GET /survei/{s_id}/export/excel and /export/csv as Authenticated Admin...")
     res = client.get(f'/survei/{s_id}/export/excel')
     assert res.status_code == 200
     assert "spreadsheetml" in res.content_type
-    print("    -> Passed! Excel export OK.")
+    
+    res_csv = client.get(f'/survei/{s_id}/export/csv')
+    assert res_csv.status_code == 200
+    assert "Pendidikan Terakhir" in res_csv.data.decode('utf-8')
+    print("    -> Passed! Excel & CSV exports OK and include 'Pendidikan Terakhir'.")
 
     print("[15] Testing GET /petugas as Authenticated Admin...")
     res = client.get('/petugas')
@@ -213,12 +224,13 @@ def run_tests():
     assert b"Target Sampel Anda" in res.data
     print("    -> Passed! Field survey form OK.")
 
-    print(f"[26] Testing POST /operator/survei/{s_id}/isi (Operator Input Sample)...")
+    print(f"[26] Testing POST /operator/survei/{s_id}/isi (Operator Input Sample with pendidikan_terakhir)...")
     sample_data = {
         'nama_responden': 'Warga Uji Coba Enumerator #99',
         'kontak_responden': '081399887766',
         'usia': '35',
         'jenis_kelamin': 'Perempuan',
+        'pendidikan_terakhir': 'Diploma (D1 - D4)',
         'alamat_wilayah': 'Kelurahan Menteng RT 05',
     }
     for q_idx, qid in enumerate(pertanyaan_ids):
@@ -241,11 +253,23 @@ def run_tests():
     assert res.status_code == 200
     assert b"Sampel Berhasil Disimpan" in res.data
     assert b"Lanjut Input Sampel Berikutnya" in res.data
-    print(f"[27] Testing GET /api/responden/{r_id}/detail as Authenticated Operator...")
-    res = client.get(f'/api/responden/{r_id}/detail')
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT id, pendidikan_terakhir FROM responden WHERE nama_responden = 'Warga Uji Coba Enumerator #99' ORDER BY id DESC LIMIT 1")
+    op_row = c.fetchone()
+    conn.close()
+    assert op_row and op_row[1] == 'Diploma (D1 - D4)', f"Expected 'Diploma (D1 - D4)', got {op_row}"
+    new_resp_id = op_row[0]
+    print("    -> Passed! Operator survey sample saved with pendidikan_terakhir.")
+
+    print(f"[27] Testing GET /api/responden/{new_resp_id}/detail as Authenticated Operator...")
+    res = client.get(f'/api/responden/{new_resp_id}/detail')
     assert res.status_code == 200
-    assert b'"success": true' in res.data or b'"success":true' in res.data
-    print("    -> Passed! Operator can fetch respondent detail modal data.")
+    detail_data = json.loads(res.data)
+    assert detail_data['success'] is True
+    assert detail_data['responden']['pendidikan_terakhir'] == 'Diploma (D1 - D4)'
+    print("    -> Passed! Operator can fetch respondent detail modal data and pendidikan_terakhir is verified.")
 
     print("\n=======================================================")
     print(" ALL 27 AUTOMATED INTEGRATION TESTS PASSED 100%! ")

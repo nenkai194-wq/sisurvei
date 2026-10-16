@@ -227,10 +227,14 @@
         subtitle.innerText = `${r.judul_survei} • Waktu: ${r.waktu_selesai}`;
 
         let html = `
-          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-4">
+          <div class="bg-blue-50/60 p-4 rounded-xl border border-blue-100 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs mb-4">
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Usia / Gender</span>
               <span class="font-bold text-slate-800">${r.usia ? r.usia + ' Tahun' : '-'} / ${r.jenis_kelamin || '-'}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Pendidikan</span>
+              <span class="font-bold text-slate-800">${r.pendidikan_terakhir || '-'}</span>
             </div>
             <div>
               <span class="text-slate-400 block text-[10px] uppercase font-semibold">Kontak</span>
