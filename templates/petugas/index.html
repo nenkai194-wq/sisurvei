@@ -47,9 +47,13 @@
       <div class="p-6">
         <div class="flex items-start justify-between gap-3 mb-4">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-blue-500/20">
-              {{ p.nama[0]|upper }}
-            </div>
+            {% if p.foto %}
+              <img src="{{ p.foto if p.foto.startswith('http') else url_for('static', filename=p.foto) }}" alt="{{ p.nama }}" class="w-12 h-12 rounded-2xl object-cover border-2 border-blue-400 shadow-sm">
+            {% else %}
+              <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-blue-500/20">
+                {{ p.nama[0]|upper }}
+              </div>
+            {% endif %}
             <div>
               <h3 class="text-sm font-bold text-slate-900 leading-snug">
                 <a href="{{ url_for('petugas_detail', id=p.id) }}" class="hover:text-blue-600 transition">{{ p.nama }}</a>
@@ -96,11 +100,17 @@
       </div>
 
       <!-- Action Footer -->
-      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-        <a href="{{ url_for('petugas_detail', id=p.id) }}" class="text-xs font-bold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1">
-          <span>Lihat Profil & Kinerja</span>
-          <i class="fa-solid fa-chevron-right text-[10px]"></i>
-        </a>
+      <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex items-center gap-2">
+          <a href="{{ url_for('petugas_detail', id=p.id) }}" class="text-xs font-bold text-blue-600 hover:text-blue-800 inline-flex items-center gap-1">
+            <span>Profil</span>
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </a>
+          <a href="{{ url_for('operator_switch', id=p.id) }}" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition" title="Masuk ke portal operator sebagai petugas ini">
+            <i class="fa-solid fa-right-to-bracket text-[10px]"></i>
+            <span>Portal Operator</span>
+          </a>
+        </div>
 
         <div class="flex items-center gap-1">
           <button onclick='openEditPetugasModal({{ p|tojson }})' class="p-2 text-xs text-slate-500 hover:text-blue-600 hover:bg-white rounded-lg transition" title="Edit Data Petugas">
@@ -123,14 +133,14 @@
 
 <!-- MODAL TAMBAH PETUGAS -->
 <div id="modalTambahPetugas" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
-  <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-200">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
       <h3 class="text-base font-bold text-slate-900">Tambah Data Petugas Survei Baru</h3>
       <button onclick="document.getElementById('modalTambahPetugas').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
     </div>
-    <form action="{{ url_for('petugas_tambah') }}" method="POST" class="mt-4 space-y-4">
+    <form action="{{ url_for('petugas_tambah') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4">
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / ID Petugas *</label>
@@ -148,6 +158,17 @@
       <div>
         <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Petugas *</label>
         <input type="text" name="nama" required placeholder="Nama lengkap beserta gelar" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+
+      <!-- Foto Petugas -->
+      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Foto Profil Petugas</label>
+        <div>
+          <input type="file" name="foto_file" accept="image/*" class="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+        </div>
+        <div>
+          <input type="url" name="foto_url" placeholder="Atau tempel URL gambar (https://...)" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -182,14 +203,14 @@
 
 <!-- MODAL EDIT PETUGAS -->
 <div id="modalEditPetugas" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
-  <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-200">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
     <div class="flex items-center justify-between pb-3 border-b border-slate-100">
       <h3 class="text-base font-bold text-slate-900">Perbarui Data Petugas</h3>
       <button onclick="document.getElementById('modalEditPetugas').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
     </div>
-    <form id="formEditPetugas" action="" method="POST" class="mt-4 space-y-4">
+    <form id="formEditPetugas" action="" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4">
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / ID Petugas *</label>
@@ -207,6 +228,17 @@
       <div>
         <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap Petugas *</label>
         <input type="text" id="edit_nama" name="nama" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      </div>
+
+      <!-- Edit Foto -->
+      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Perbarui Foto Profil</label>
+        <div>
+          <input type="file" name="foto_file" accept="image/*" class="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer">
+        </div>
+        <div>
+          <input type="url" id="edit_foto_url" name="foto_url" placeholder="Atau ganti URL foto (https://...)" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -251,6 +283,7 @@
     document.getElementById('edit_wilayah').value = p.wilayah || '';
     document.getElementById('edit_jabatan').value = p.jabatan || 'Petugas Lapangan';
     document.getElementById('edit_status').value = p.status || 'Aktif';
+    document.getElementById('edit_foto_url').value = (p.foto && p.foto.startsWith('http')) ? p.foto : '';
 
     document.getElementById('modalEditPetugas').classList.remove('hidden');
   }

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Portal Operator Enumerator - SiSurvei{% endblock %}</title>
+  
+  <!-- Google Fonts & Tailwind CSS CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-full flex flex-col text-slate-800 antialiased bg-slate-50">
+
+  <!-- TOP NAVBAR KHUSUS OPERATOR -->
+  <header class="bg-white border-b border-slate-200/90 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      
+      <!-- Brand & Mode Badge -->
+      <div class="flex items-center space-x-3">
+        <a href="{{ url_for('operator_tugas') }}" class="flex items-center space-x-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+            <i class="fa-solid fa-clipboard-user text-lg"></i>
+          </div>
+          <div>
+            <span class="font-extrabold text-base text-slate-900 tracking-tight flex items-center">
+              Si<span class="text-emerald-600">Survei</span>
+              <span class="ml-2 px-2 py-0.5 text-[10px] uppercase font-extrabold bg-emerald-100 text-emerald-800 rounded-full border border-emerald-300">OPERATOR</span>
+            </span>
+          </div>
+        </a>
+      </div>
+
+      <!-- DUA MENU UTAMA LEVEL OPERATOR -->
+      <nav class="hidden md:flex items-center space-x-1">
+        <!-- Menu 1: Profil Petugas Enumerator -->
+        <a href="{{ url_for('operator_profil') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition {% if request.endpoint == 'operator_profil' %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+          <i class="fa-solid fa-id-card text-sm"></i>
+          <span>Profil Petugas</span>
+        </a>
+
+        <!-- Menu 2: Halaman Tugas Survei -->
+        <a href="{{ url_for('operator_tugas') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition {% if request.endpoint in ['operator_tugas', 'operator_survei_isi', 'operator_survei_sukses'] %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+          <i class="fa-solid fa-list-check text-sm"></i>
+          <span>Tugas Survei Saya</span>
+        </a>
+      </nav>
+
+      <!-- Petugas Active Profile & Switcher -->
+      <div class="flex items-center space-x-3">
+        
+        <!-- Current Officer Info Pill -->
+        <div class="flex items-center gap-2.5 pl-3 border-l border-slate-200">
+          <div class="relative">
+            {% if current_operator.foto %}
+              <img src="{{ current_operator.foto if current_operator.foto.startswith('http') else url_for('static', filename=current_operator.foto) }}" alt="{{ current_operator.nama }}" class="w-9 h-9 rounded-full object-cover border-2 border-emerald-500 shadow-xs">
+            {% else %}
+              <div class="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-xs flex items-center justify-center border border-emerald-300">
+                {{ current_operator.nama[0]|upper }}
+              </div>
+            {% endif %}
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+          </div>
+
+          <div class="hidden sm:block text-left">
+            <p class="text-xs font-bold text-slate-900 leading-tight truncate max-w-[130px]">{{ current_operator.nama }}</p>
+            <p class="text-[10px] text-slate-400 font-mono">{{ current_operator.nip }}</p>
+          </div>
+        </div>
+
+        <!-- Tombol Ganti Petugas / Switch Account -->
+        <button onclick="document.getElementById('modalSwitchPetugas').classList.remove('hidden')" class="p-2 text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="Ganti Akun Petugas">
+          <i class="fa-solid fa-users text-sm"></i>
+        </button>
+
+        <!-- Tombol Beralih ke Admin -->
+        <a href="{{ url_for('dashboard') }}" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="Beralih ke Panel Administrator">
+          <i class="fa-solid fa-shield-halved text-[11px] text-blue-600"></i>
+          <span>Admin</span>
+        </a>
+
+      </div>
+
+    </div>
+
+    <!-- Mobile Nav Bar (Bottom Bar) -->
+    <div class="md:hidden flex items-center justify-around border-t border-slate-100 bg-white py-2 px-4">
+      <a href="{{ url_for('operator_profil') }}" class="flex flex-col items-center gap-0.5 text-xs font-semibold {% if request.endpoint == 'operator_profil' %}text-emerald-700{% else %}text-slate-500{% endif %}">
+        <i class="fa-solid fa-id-card text-base"></i>
+        <span class="text-[10px]">Profil Petugas</span>
+      </a>
+
+      <a href="{{ url_for('operator_tugas') }}" class="flex flex-col items-center gap-0.5 text-xs font-semibold {% if request.endpoint in ['operator_tugas', 'operator_survei_isi', 'operator_survei_sukses'] %}text-emerald-700{% else %}text-slate-500{% endif %}">
+        <i class="fa-solid fa-list-check text-base"></i>
+        <span class="text-[10px]">Tugas Survei</span>
+      </a>
+
+      <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center gap-0.5 text-xs font-semibold text-slate-400">
+        <i class="fa-solid fa-shield-halved text-base"></i>
+        <span class="text-[10px]">Portal Admin</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- FLASH ALERTS -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-4 w-full">
+        {% for category, message in messages %}
+          <div class="flex items-center justify-between p-4 mb-3 text-xs sm:text-sm rounded-xl border {% if category == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-200{% elif category == 'danger' %}bg-rose-50 text-rose-800 border-rose-200{% elif category == 'warning' %}bg-amber-50 text-amber-800 border-amber-200{% else %}bg-blue-50 text-blue-800 border-blue-200{% endif %} shadow-sm">
+            <div class="flex items-center space-x-2.5">
+              <i class="fa-solid {% if category == 'success' %}fa-circle-check text-emerald-500{% elif category == 'danger' %}fa-circle-exclamation text-rose-500{% else %}fa-circle-info text-blue-500{% endif %}"></i>
+              <span>{{ message }}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-700 text-xs p-1">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- MAIN OPERATOR CONTENT -->
+  <main class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-6 w-full">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-6 border-t border-slate-200 text-center text-xs text-slate-400 bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>Portal Operator Enumerator Lapangan &copy; 2026 SiSurvei</p>
+      <div class="flex items-center gap-3">
+        <span class="text-emerald-600 font-semibold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          Akun Aktif: {{ current_operator.nama }}
+        </span>
+        <span>•</span>
+        <a href="{{ url_for('dashboard') }}" class="text-blue-600 hover:underline">Panel Administrator</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL GANTI AKUN OPERATOR (SWITCHER) -->
+  <div id="modalSwitchPetugas" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-900">Pilih / Ganti Akun Petugas</h3>
+        <button onclick="document.getElementById('modalSwitchPetugas').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-500 mt-2 mb-4">Pilih petugas yang sedang bertugas untuk mengakses tugas survei dan mengisi kuisioner lapangan.</p>
+
+      <div class="space-y-2 max-h-72 overflow-y-auto custom-scrollbar p-1">
+        {% for op in all_active_petugas %}
+        <a href="{{ url_for('operator_switch', id=op.id) }}" class="flex items-center justify-between p-3 rounded-xl border {% if op.id == current_operator.id %}border-emerald-500 bg-emerald-50/40{% else %}border-slate-200 hover:border-slate-300 hover:bg-slate-50{% endif %} transition">
+          <div class="flex items-center gap-3">
+            {% if op.foto %}
+              <img src="{{ op.foto if op.foto.startswith('http') else url_for('static', filename=op.foto) }}" alt="{{ op.nama }}" class="w-10 h-10 rounded-full object-cover border border-slate-200">
+            {% else %}
+              <div class="w-10 h-10 rounded-full bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center">
+                {{ op.nama[0]|upper }}
+              </div>
+            {% endif %}
+            <div>
+              <p class="text-xs font-bold text-slate-900">{{ op.nama }}</p>
+              <p class="text-[11px] text-slate-500">{{ op.nip }} • {{ op.wilayah }}</p>
+            </div>
+          </div>
+
+          {% if op.id == current_operator.id %}
+            <span class="px-2 py-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 rounded-full">Aktif</span>
+          {% else %}
+            <span class="text-xs text-blue-600 font-semibold hover:underline">Pilih</span>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

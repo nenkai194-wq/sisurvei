@@ -17,22 +17,22 @@ def seed():
     cursor.execute("DELETE FROM survei")
     cursor.execute("DELETE FROM petugas")
     
-    # 1. Seed Petugas
+    # 1. Seed Petugas (dengan Foto Profil)
     petugas_data = [
-        ("PTG-001", "Budi Santoso, S.Kom", "budi.santoso@survei.go.id", "081234567891", "Jakarta Pusat", "Koordinator Wilayah", "Aktif"),
-        ("PTG-002", "Siti Aminah, S.Sos", "siti.aminah@survei.go.id", "081298765432", "Bandung", "Petugas Lapangan", "Aktif"),
-        ("PTG-003", "Ahmad Fauzi, S.Stat", "ahmad.fauzi@survei.go.id", "081345678901", "Surabaya", "Petugas Lapangan", "Aktif"),
-        ("PTG-004", "Rina Kartika, M.Si", "rina.kartika@survei.go.id", "081398765432", "Semarang", "Enumerator Senior", "Aktif"),
-        ("PTG-005", "Dedi Kurniawan, S.AP", "dedi.kurniawan@survei.go.id", "085212345678", "Medan", "Petugas Lapangan", "Aktif"),
-        ("PTG-006", "Ni Putu Ayu Sri, S.Tr.Stat", "putu.ayu@survei.go.id", "087812345678", "Denpasar, Bali", "Petugas Lapangan", "Aktif"),
-        ("PTG-007", "Hendra Wijaya", "hendra.w@survei.go.id", "085712345678", "Yogyakarta", "Petugas Lapangan", "Nonaktif"),
+        ("PTG-001", "Budi Santoso, S.Kom", "budi.santoso@survei.go.id", "081234567891", "Jakarta Pusat", "Koordinator Wilayah", "Aktif", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80"),
+        ("PTG-002", "Siti Aminah, S.Sos", "siti.aminah@survei.go.id", "081298765432", "Bandung", "Petugas Lapangan", "Aktif", "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80"),
+        ("PTG-003", "Ahmad Fauzi, S.Stat", "ahmad.fauzi@survei.go.id", "081345678901", "Surabaya", "Petugas Lapangan", "Aktif", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80"),
+        ("PTG-004", "Rina Kartika, M.Si", "rina.kartika@survei.go.id", "081398765432", "Semarang", "Enumerator Senior", "Aktif", "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&auto=format&fit=crop&q=80"),
+        ("PTG-005", "Dedi Kurniawan, S.AP", "dedi.kurniawan@survei.go.id", "085212345678", "Medan", "Petugas Lapangan", "Aktif", "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&auto=format&fit=crop&q=80"),
+        ("PTG-006", "Ni Putu Ayu Sri, S.Tr.Stat", "putu.ayu@survei.go.id", "087812345678", "Denpasar, Bali", "Petugas Lapangan", "Aktif", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"),
+        ("PTG-007", "Hendra Wijaya", "hendra.w@survei.go.id", "085712345678", "Yogyakarta", "Petugas Lapangan", "Nonaktif", "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80"),
     ]
     
     petugas_ids = []
     for p in petugas_data:
         cursor.execute('''
-            INSERT INTO petugas (nip, nama, email, no_hp, wilayah, jabatan, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO petugas (nip, nama, email, no_hp, wilayah, jabatan, status, foto)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', p)
         petugas_ids.append(cursor.lastrowid)
         

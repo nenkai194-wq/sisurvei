@@ -1,0 +1,333 @@
+{% extends 'operator/base.html' %}
+
+{% block title %}Tugas Survei Saya - Portal Operator{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- HEADER BANNER -->
+  <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+      
+      <div class="flex items-center gap-4 sm:gap-6">
+        <div class="relative">
+          {% if current_operator.foto %}
+            <img src="{{ current_operator.foto if current_operator.foto.startswith('http') else url_for('static', filename=current_operator.foto) }}" alt="{{ current_operator.nama }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-emerald-500 shadow-md">
+          {% else %}
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-extrabold text-2xl flex items-center justify-center shadow-md">
+              {{ current_operator.nama[0]|upper }}
+            </div>
+          {% endif %}
+          <span class="absolute -bottom-1 -right-1 px-2 py-0.5 text-[9px] font-extrabold uppercase bg-emerald-600 text-white rounded-md shadow-xs">
+            Enumerator
+          </span>
+        </div>
+
+        <div>
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">{{ current_operator.nip }}</span>
+            <span class="text-xs text-slate-500 font-medium">• Wilayah: <strong class="text-slate-700">{{ current_operator.wilayah or 'Nasional' }}</strong></span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">{{ current_operator.nama }}</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Kelompok Tugas Enumerator Lapangan • Status: <span class="text-emerald-600 font-bold">{{ current_operator.status }}</span></p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('operator_profil') }}" class="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-user-pen"></i>
+          <span>Kelola Profil Saya</span>
+        </a>
+      </div>
+
+    </div>
+
+    <!-- STATS CARDS SUMMARY -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100">
+      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Survei Ditugaskan</span>
+        <div class="flex items-baseline gap-1 mt-1">
+          <span class="text-2xl font-extrabold text-slate-900">{{ tasks|length }}</span>
+          <span class="text-xs text-slate-400">Kegiatan</span>
+        </div>
+      </div>
+
+      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Target Sampel Total</span>
+        <div class="flex items-baseline gap-1 mt-1">
+          <span class="text-2xl font-extrabold text-indigo-600">{{ total_target_sampel }}</span>
+          <span class="text-xs text-slate-400">Responden</span>
+        </div>
+      </div>
+
+      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Sampel Selesai</span>
+        <div class="flex items-baseline gap-1 mt-1">
+          <span class="text-2xl font-extrabold text-emerald-600">{{ total_realisasi_sampel }}</span>
+          <span class="text-xs text-slate-400">Terkumpul</span>
+        </div>
+      </div>
+
+      <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+        <span class="text-[10px] uppercase font-bold text-slate-400 block">Sisa Sampel</span>
+        <div class="flex items-baseline gap-1 mt-1">
+          <span class="text-2xl font-extrabold text-amber-600">{{ sisa_target_sampel }}</span>
+          <span class="text-xs text-slate-400">Responden</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAFTAR TUGAS SURVEI -->
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-base font-bold text-slate-900">Daftar Keikutsertaan Penugasan Survei</h3>
+        <p class="text-xs text-slate-500">Kelompok tugas survei dan kuota sampel responden yang harus Anda kumpulkan</p>
+      </div>
+      <span class="text-xs font-bold text-slate-500">{{ tasks|length }} Penugasan Aktif</span>
+    </div>
+
+    {% if tasks %}
+      <div class="space-y-5">
+        {% for t in tasks %}
+        <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-6 space-y-4 hover:border-emerald-300 transition">
+          
+          <!-- Top Row: Survey info & role -->
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div>
+              <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{{ t.kode_survei }}</span>
+                <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <i class="fa-solid fa-users-viewfinder mr-1"></i> Kelompok: {{ t.peran }}
+                </span>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full {% if t.status == 'Aktif' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-200 text-slate-700{% endif %}">
+                  {{ t.status }}
+                </span>
+                <span class="text-xs text-slate-400 font-medium">• {{ t.kategori }}</span>
+              </div>
+
+              <h4 class="text-base font-extrabold text-slate-900 leading-snug">{{ t.judul }}</h4>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">{{ t.deskripsi or 'Tidak ada deskripsi singkat.' }}</p>
+            </div>
+
+            <!-- ACTION BUTTON: BUKA KUISIONER -->
+            <div class="shrink-0 flex items-center gap-2">
+              {% if t.status == 'Aktif' %}
+                <a href="{{ url_for('operator_survei_isi', survei_id=t.id) }}" class="px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-500/20 inline-flex items-center gap-2">
+                  <i class="fa-solid fa-file-pen"></i>
+                  <span>Buka Form Kuisioner</span>
+                </a>
+              {% else %}
+                <span class="px-4 py-2 text-xs font-semibold text-slate-400 bg-slate-100 rounded-xl cursor-not-allowed">
+                  Survei Ditutup
+                </span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- TARGET SAMPEL MONITORING -->
+          <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-600 font-medium">
+                Realisasi Sampel Saya: <strong class="text-slate-900 font-bold text-sm">{{ t.realisasi_sampel }}</strong> dari total <strong class="text-emerald-700 font-bold text-sm">{{ t.target_individu }}</strong> sampel yang ditentukan
+              </span>
+              <div class="text-right">
+                <span class="text-xs font-extrabold text-emerald-600">{{ t.persen_sampel }}% Selesai</span>
+                <span class="text-[11px] text-slate-400 block font-medium">
+                  {% if t.sisa_sampel > 0 %}
+                    Sisa <strong class="text-amber-600">{{ t.sisa_sampel }}</strong> sampel lagi
+                  {% else %}
+                    <strong class="text-emerald-600">🎉 Target Sampel Tercapai!</strong>
+                  {% endif %}
+                </span>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+              <div class="bg-gradient-to-r from-emerald-500 to-teal-600 h-2.5 rounded-full transition-all duration-500" style="width: {{ t.persen_sampel }}%"></div>
+            </div>
+
+            <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+              <span><i class="fa-solid fa-calendar-day mr-1"></i> Periode: {{ t.tanggal_mulai|format_date }} s.d. {{ t.tanggal_selesai|format_date }}</span>
+              <span>Total Sampel Keseluruhan Survei: {{ t.total_masuk_survei }} / {{ t.target_responden }}</span>
+            </div>
+          </div>
+
+          <!-- Accordion / Riwayat Sampel Saya -->
+          <div class="pt-2">
+            <details class="group">
+              <summary class="flex items-center justify-between cursor-pointer text-xs font-bold text-slate-600 hover:text-slate-900 select-none py-1">
+                <span class="inline-flex items-center gap-1.5">
+                  <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                  <span>Lihat Riwayat Responden yang Telah Saya Input ({{ t.my_responses|length }} Data)</span>
+                </span>
+                <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 group-open:rotate-180 transition-transform"></i>
+              </summary>
+
+              <div class="mt-3 overflow-x-auto border border-slate-100 rounded-xl">
+                <table class="w-full text-left text-xs text-slate-600">
+                  <thead class="bg-slate-50 text-[11px] text-slate-500 uppercase font-semibold border-b border-slate-200">
+                    <tr>
+                      <th class="py-2.5 px-3">No</th>
+                      <th class="py-2.5 px-3">Nama Responden</th>
+                      <th class="py-2.5 px-3">Demografi</th>
+                      <th class="py-2.5 px-3">Wilayah</th>
+                      <th class="py-2.5 px-3">Waktu Input</th>
+                      <th class="py-2.5 px-3 text-center">Lembar Jawaban</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    {% for r in t.my_responses %}
+                    <tr class="hover:bg-slate-50">
+                      <td class="py-2 px-3 text-slate-400 font-mono">{{ loop.index }}</td>
+                      <td class="py-2 px-3 font-bold text-slate-800">{{ r.nama_responden or 'Anonim' }}</td>
+                      <td class="py-2 px-3 text-slate-500">{{ r.jenis_kelamin or '-' }} • {{ r.usia or '-' }} th</td>
+                      <td class="py-2 px-3 text-slate-500">{{ r.alamat_wilayah or '-' }}</td>
+                      <td class="py-2 px-3 text-slate-400">{{ r.waktu_selesai|format_datetime }}</td>
+                      <td class="py-2 px-3 text-center">
+                        <button onclick="viewRespondentDetail({{ r.id }})" class="p-1 text-emerald-600 hover:text-emerald-800 rounded">
+                          <i class="fa-solid fa-eye text-xs"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                      <td colspan="6" class="py-4 text-center text-slate-400 text-xs">Belum ada sampel responden yang diinput untuk survei ini. Klik tombol <strong>Buka Form Kuisioner</strong> di atas untuk mulai.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          </div>
+
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="bg-white rounded-2xl p-12 text-center border border-slate-200">
+        <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mx-auto mb-3">
+          <i class="fa-solid fa-clipboard-question"></i>
+        </div>
+        <h4 class="text-sm font-bold text-slate-800 mb-1">Belum Ada Penugasan Survei</h4>
+        <p class="text-xs text-slate-500 max-w-sm mx-auto">Petugas belum dimasukkan ke dalam kelompok tugas kegiatan survei manapun oleh Administrator.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- MODAL DETAIL JAWABAN RESPONDEN -->
+<div id="modalDetailResponden" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+  <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+      <div>
+        <h3 class="text-base font-bold text-slate-900" id="modalRespTitle">Lembar Jawaban Responden</h3>
+        <p class="text-xs text-slate-500" id="modalRespSubtitle">Memuat data...</p>
+      </div>
+      <button onclick="document.getElementById('modalDetailResponden').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 p-1">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+    </div>
+
+    <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4" id="modalRespBody">
+      <div class="text-center py-8 text-slate-400">
+        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-emerald-600"></i>
+        <p class="mt-2 text-xs">Mengambil lembar jawaban...</p>
+      </div>
+    </div>
+
+    <div class="px-6 py-3 border-t border-slate-100 flex justify-end bg-slate-50">
+      <button onclick="document.getElementById('modalDetailResponden').classList.add('hidden')" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-lg transition">Tutup</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function viewRespondentDetail(respId) {
+    const modal = document.getElementById('modalDetailResponden');
+    const title = document.getElementById('modalRespTitle');
+    const subtitle = document.getElementById('modalRespSubtitle');
+    const body = document.getElementById('modalRespBody');
+
+    modal.classList.remove('hidden');
+    body.innerHTML = `
+      <div class="text-center py-8 text-slate-400">
+        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-emerald-600"></i>
+        <p class="mt-2 text-xs">Mengambil lembar jawaban...</p>
+      </div>
+    `;
+
+    fetch(`/api/responden/${respId}/detail`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.success) {
+          body.innerHTML = `<div class="p-4 text-center text-rose-600 text-xs">Gagal mengambil data kuisioner.</div>`;
+          return;
+        }
+
+        const r = data.responden;
+        title.innerText = `Lembar Jawaban: ${r.nama_responden || 'Anonim'}`;
+        subtitle.innerText = `${r.judul_survei} • Waktu: ${r.waktu_selesai}`;
+
+        let html = `
+          <div class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-4">
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Usia / Gender</span>
+              <span class="font-bold text-slate-800">${r.usia ? r.usia + ' Tahun' : '-'} / ${r.jenis_kelamin || '-'}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Kontak</span>
+              <span class="font-bold text-slate-800">${r.kontak_responden || '-'}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Wilayah</span>
+              <span class="font-bold text-slate-800">${r.alamat_wilayah || '-'}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] uppercase font-semibold">Petugas Penginput</span>
+              <span class="font-bold text-emerald-700">${r.nama_petugas ? r.nama_petugas : 'Mandiri'}</span>
+            </div>
+          </div>
+
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Jawaban Kuisioner (${data.answers.length} Pertanyaan)</h4>
+          <div class="space-y-3">
+        `;
+
+        data.answers.forEach((q, idx) => {
+          let ansDisplay = '';
+          if (Array.isArray(q.jawaban_teks_parsed)) {
+            ansDisplay = q.jawaban_teks_parsed.map(item => `
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 mr-1 mb-1">
+                <i class="fa-solid fa-check mr-1 text-[10px]"></i> ${item}
+              </span>
+            `).join('');
+          } else if (q.tipe_pertanyaan === 'rating') {
+            const val = parseInt(q.jawaban_angka || 0);
+            let stars = '';
+            for (let s = 1; s <= (q.rating_max || 5); s++) {
+              stars += s <= val ? '<i class="fa-solid fa-star text-amber-400 mr-0.5"></i>' : '<i class="fa-regular fa-star text-slate-300 mr-0.5"></i>';
+            }
+            ansDisplay = `<div class="flex items-center gap-2"><div class="text-sm">${stars}</div><span class="text-xs font-bold text-slate-700">(${val} / ${q.rating_max || 5})</span></div>`;
+          } else {
+            ansDisplay = `<p class="text-xs text-slate-800 font-medium whitespace-pre-line">${q.jawaban_teks || '<span class="text-slate-400 italic">(Tidak diisi)</span>'}</p>`;
+          }
+
+          html += `
+            <div class="p-3.5 rounded-xl border border-slate-200 bg-white">
+              <p class="text-xs font-bold text-slate-900 mb-1.5"><span class="text-emerald-600 mr-1">${idx + 1}.</span> ${q.teks_pertanyaan}</p>
+              <div class="pt-1.5 border-t border-slate-100">${ansDisplay}</div>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+        body.innerHTML = html;
+      });
+  }
+</script>
+{% endblock %}

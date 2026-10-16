@@ -5,12 +5,54 @@ import csv
 from datetime import datetime, timedelta
 from flask import (
     Flask, render_template, request, redirect, url_for, 
-    flash, jsonify, send_file, abort
+    flash, jsonify, send_file, abort, session
 )
+from werkzeug.utils import secure_filename
 from database import get_db, init_db
 
 app = Flask(__name__)
 app.secret_key = 'sisurvei-super-secret-key-production-2026'
+
+# Konfigurasi Upload Foto Petugas
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads', 'petugas')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_uploaded_photo(file_obj, nip):
+    if not file_obj or file_obj.filename == '':
+        return None
+    if allowed_file(file_obj.filename):
+        ext = file_obj.filename.rsplit('.', 1)[1].lower()
+        clean_nip = secure_filename(str(nip).replace('-', '_'))
+        filename = f"ptg_{clean_nip}_{int(datetime.now().timestamp())}.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file_obj.save(filepath)
+        return f"uploads/petugas/{filename}"
+    return None
+
+def get_current_operator():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM petugas WHERE status = 'Aktif' ORDER BY id ASC")
+    all_active = [dict(r) for r in cursor.fetchall()]
+    
+    op_id = session.get('operator_id')
+    current_op = None
+    if op_id:
+        for p in all_active:
+            if p['id'] == op_id:
+                current_op = p
+                break
+                
+    if not current_op and all_active:
+        current_op = all_active[0]
+        session['operator_id'] = current_op['id']
+        
+    conn.close()
+    return current_op, all_active
 
 # Custom Jinja filters
 @app.template_filter('from_json')
@@ -1088,10 +1130,14 @@ def petugas_tambah():
         conn.close()
         return redirect(url_for('petugas_index'))
         
+    foto_file = request.files.get('foto_file')
+    foto_url = request.form.get('foto_url', '').strip()
+    foto = save_uploaded_photo(foto_file, nip) or (foto_url if foto_url else None)
+
     cursor.execute('''
-        INSERT INTO petugas (nip, nama, email, no_hp, wilayah, jabatan, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (nip, nama, email, no_hp, wilayah, jabatan, status))
+        INSERT INTO petugas (nip, nama, email, no_hp, wilayah, jabatan, status, foto)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (nip, nama, email, no_hp, wilayah, jabatan, status, foto))
     conn.commit()
     conn.close()
     flash(f"Petugas '{nama}' berhasil ditambahkan ke sistem!", "success")
@@ -1116,11 +1162,22 @@ def petugas_edit(id):
         conn.close()
         return redirect(url_for('petugas_index'))
         
-    cursor.execute('''
-        UPDATE petugas
-        SET nip = ?, nama = ?, email = ?, no_hp = ?, wilayah = ?, jabatan = ?, status = ?
-        WHERE id = ?
-    ''', (nip, nama, email, no_hp, wilayah, jabatan, status, id))
+    foto_file = request.files.get('foto_file')
+    foto_url = request.form.get('foto_url', '').strip()
+    new_foto = save_uploaded_photo(foto_file, nip) or (foto_url if foto_url else None)
+
+    if new_foto:
+        cursor.execute('''
+            UPDATE petugas
+            SET nip = ?, nama = ?, email = ?, no_hp = ?, wilayah = ?, jabatan = ?, status = ?, foto = ?
+            WHERE id = ?
+        ''', (nip, nama, email, no_hp, wilayah, jabatan, status, new_foto, id))
+    else:
+        cursor.execute('''
+            UPDATE petugas
+            SET nip = ?, nama = ?, email = ?, no_hp = ?, wilayah = ?, jabatan = ?, status = ?
+            WHERE id = ?
+        ''', (nip, nama, email, no_hp, wilayah, jabatan, status, id))
     conn.commit()
     conn.close()
     flash(f"Data petugas '{nama}' berhasil diperbarui!", "success")
@@ -1244,6 +1301,284 @@ def respons_hapus(id):
     conn.close()
     flash("Data responden berhasil dihapus.", "success")
     return redirect(request.referrer or url_for('respons_index'))
+
+# ==========================================
+# 9. PORTAL LEVEL OPERATOR / ENUMERATOR
+# ==========================================
+@app.route('/operator')
+def operator_home():
+    return redirect(url_for('operator_tugas'))
+
+@app.route('/operator/switch/<int:id>')
+def operator_switch(id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM petugas WHERE id = ?", (id,))
+    p = cursor.fetchone()
+    conn.close()
+    if p:
+        session['operator_id'] = id
+        flash(f"Beralih akun ke petugas: {p['nama']}", "info")
+    return redirect(url_for('operator_tugas'))
+
+@app.route('/operator/tugas')
+def operator_tugas():
+    current_op, all_active = get_current_operator()
+    if not current_op:
+        flash("Belum ada data petugas aktif di sistem.", "warning")
+        return redirect(url_for('dashboard'))
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT s.*, sp.peran, sp.target_individu,
+               (SELECT COUNT(*) FROM responden WHERE survei_id = s.id AND petugas_id = ?) as realisasi_sampel,
+               (SELECT COUNT(*) FROM responden WHERE survei_id = s.id) as total_masuk_survei
+        FROM survei_petugas sp
+        JOIN survei s ON sp.survei_id = s.id
+        WHERE sp.petugas_id = ?
+        ORDER BY s.id DESC
+    ''', (current_op['id'], current_op['id']))
+    
+    tasks = []
+    total_target = 0
+    total_realisasi = 0
+    
+    for row in cursor.fetchall():
+        t = dict(row)
+        target_ind = t['target_individu'] or 25
+        realisasi = t['realisasi_sampel'] or 0
+        t['sisa_sampel'] = max(0, target_ind - realisasi)
+        t['persen_sampel'] = min(100, round((realisasi / target_ind) * 100, 1))
+        
+        # Ambil riwayat responden yang diinput petugas ini untuk survei ini
+        cursor.execute('''
+            SELECT id, nama_responden, usia, jenis_kelamin, alamat_wilayah, waktu_selesai
+            FROM responden
+            WHERE survei_id = ? AND petugas_id = ?
+            ORDER BY waktu_selesai DESC LIMIT 20
+        ''', (t['id'], current_op['id']))
+        t['my_responses'] = [dict(r) for r in cursor.fetchall()]
+        
+        total_target += target_ind
+        total_realisasi += realisasi
+        tasks.append(t)
+        
+    sisa_total = max(0, total_target - total_realisasi)
+    conn.close()
+    
+    return render_template(
+        'operator/tugas.html',
+        current_operator=current_op,
+        all_active_petugas=all_active,
+        tasks=tasks,
+        total_target_sampel=total_target,
+        total_realisasi_sampel=total_realisasi,
+        sisa_target_sampel=sisa_total
+    )
+
+@app.route('/operator/profil', methods=['GET', 'POST'])
+def operator_profil():
+    current_op, all_active = get_current_operator()
+    if not current_op:
+        flash("Petugas tidak ditemukan!", "danger")
+        return redirect(url_for('dashboard'))
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    if request.method == 'POST':
+        nama = request.form.get('nama', '').strip()
+        no_hp = request.form.get('no_hp', '').strip()
+        email = request.form.get('email', '').strip()
+        wilayah = request.form.get('wilayah', '').strip()
+        foto_url = request.form.get('foto_url', '').strip()
+        foto_file = request.files.get('foto_file')
+        
+        new_foto = save_uploaded_photo(foto_file, current_op['nip']) or (foto_url if foto_url else None)
+        
+        if new_foto:
+            cursor.execute('''
+                UPDATE petugas
+                SET nama = ?, no_hp = ?, email = ?, wilayah = ?, foto = ?
+                WHERE id = ?
+            ''', (nama, no_hp, email, wilayah, new_foto, current_op['id']))
+        else:
+            cursor.execute('''
+                UPDATE petugas
+                SET nama = ?, no_hp = ?, email = ?, wilayah = ?
+                WHERE id = ?
+            ''', (nama, no_hp, email, wilayah, current_op['id']))
+            
+        conn.commit()
+        conn.close()
+        flash("Profil dan foto petugas berhasil diperbarui!", "success")
+        return redirect(url_for('operator_profil'))
+        
+    # Statistik kumulatif
+    cursor.execute('''
+        SELECT COUNT(DISTINCT sp.survei_id) as total_survei,
+               COALESCE(SUM(sp.target_individu), 0) as total_target,
+               (SELECT COUNT(*) FROM responden WHERE petugas_id = ?) as total_realisasi
+        FROM survei_petugas sp
+        WHERE sp.petugas_id = ?
+    ''', (current_op['id'], current_op['id']))
+    stat = cursor.fetchone()
+    total_survei = stat['total_survei'] if stat else 0
+    total_target = stat['total_target'] if stat else 0
+    total_realisasi = stat['total_realisasi'] if stat else 0
+    persen = min(100, round((total_realisasi / (total_target or 1)) * 100, 1))
+    
+    conn.close()
+    return render_template(
+        'operator/profil.html',
+        current_operator=current_op,
+        all_active_petugas=all_active,
+        total_survei=total_survei,
+        total_target_sampel=total_target,
+        total_realisasi=total_realisasi,
+        persen_kumulatif=persen
+    )
+
+@app.route('/operator/survei/<int:survei_id>/isi', methods=['GET', 'POST'])
+def operator_survei_isi(survei_id):
+    current_op, all_active = get_current_operator()
+    if not current_op:
+        flash("Petugas tidak aktif.", "warning")
+        return redirect(url_for('dashboard'))
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM survei WHERE id = ?", (survei_id,))
+    survei = cursor.fetchone()
+    if not survei:
+        conn.close()
+        abort(404)
+        
+    if survei['status'] != 'Aktif':
+        conn.close()
+        flash("Survei ini sedang tidak aktif/ditutup.", "warning")
+        return redirect(url_for('operator_tugas'))
+        
+    # Ambil data penugasan
+    cursor.execute("SELECT * FROM survei_petugas WHERE survei_id = ? AND petugas_id = ?", (survei_id, current_op['id']))
+    penugasan_row = cursor.fetchone()
+    if not penugasan_row:
+        cursor.execute("INSERT INTO survei_petugas (survei_id, petugas_id, peran, target_individu) VALUES (?, ?, 'Petugas Lapangan', 25)", (survei_id, current_op['id']))
+        conn.commit()
+        penugasan = {'peran': 'Petugas Lapangan', 'target_individu': 25}
+    else:
+        penugasan = dict(penugasan_row)
+        
+    # Realisasi count
+    cursor.execute("SELECT COUNT(*) FROM responden WHERE survei_id = ? AND petugas_id = ?", (survei_id, current_op['id']))
+    realisasi_count = cursor.fetchone()[0]
+    target_ind = penugasan.get('target_individu', 25) or 25
+    persen_sampel = min(100, round((realisasi_count / target_ind) * 100, 1))
+    
+    # Pertanyaan
+    cursor.execute("SELECT * FROM pertanyaan WHERE survei_id = ? ORDER BY urutan ASC, id ASC", (survei_id,))
+    questions = []
+    for q in cursor.fetchall():
+        item = dict(q)
+        item['pilihan_opsi_list'] = json.loads(item['pilihan_opsi']) if item['pilihan_opsi'] else []
+        questions.append(item)
+        
+    if request.method == 'POST':
+        nama_responden = request.form.get('nama_responden', '').strip() or 'Anonim'
+        kontak_responden = request.form.get('kontak_responden', '').strip()
+        usia = request.form.get('usia')
+        usia = int(usia) if usia and usia.isdigit() else None
+        jenis_kelamin = request.form.get('jenis_kelamin', 'Rahasia')
+        alamat_wilayah = request.form.get('alamat_wilayah', '').strip()
+        
+        cursor.execute('''
+            INSERT INTO responden (survei_id, petugas_id, nama_responden, kontak_responden, usia, jenis_kelamin, alamat_wilayah, ip_address, waktu_selesai)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (survei_id, current_op['id'], nama_responden, kontak_responden, usia, jenis_kelamin, alamat_wilayah, request.remote_addr or '127.0.0.1'))
+        resp_id = cursor.lastrowid
+        
+        for q in questions:
+            q_id = q['id']
+            q_tipe = q['tipe_pertanyaan']
+            field_name = f"q_{q_id}"
+            
+            jawaban_teks = None
+            jawaban_angka = None
+            
+            if q_tipe == 'checkbox':
+                checked = request.form.getlist(f"{field_name}[]")
+                if checked:
+                    jawaban_teks = json.dumps(checked, ensure_ascii=False)
+            elif q_tipe in ['rating', 'number']:
+                val = request.form.get(field_name)
+                if val is not None and val != '':
+                    jawaban_teks = str(val).strip()
+                    try:
+                        jawaban_angka = float(val)
+                    except ValueError:
+                        jawaban_angka = None
+            else:
+                val = request.form.get(field_name)
+                if val is not None and val != '':
+                    jawaban_teks = str(val).strip()
+                    
+            cursor.execute("INSERT INTO jawaban (responden_id, pertanyaan_id, jawaban_teks, jawaban_angka) VALUES (?, ?, ?, ?)",
+                           (resp_id, q_id, jawaban_teks, jawaban_angka))
+                           
+        conn.commit()
+        conn.close()
+        return redirect(url_for('operator_survei_sukses', survei_id=survei_id, resp_id=resp_id))
+        
+    conn.close()
+    return render_template(
+        'operator/isi.html',
+        survei=dict(survei),
+        penugasan=penugasan,
+        current_operator=current_op,
+        all_active_petugas=all_active,
+        realisasi_count=realisasi_count,
+        persen_sampel=persen_sampel,
+        questions=questions
+    )
+
+@app.route('/operator/survei/<int:survei_id>/sukses')
+def operator_survei_sukses(survei_id):
+    current_op, all_active = get_current_operator()
+    if not current_op:
+        return redirect(url_for('dashboard'))
+        
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM survei WHERE id = ?", (survei_id,))
+    survei = cursor.fetchone()
+    
+    cursor.execute("SELECT * FROM survei_petugas WHERE survei_id = ? AND petugas_id = ?", (survei_id, current_op['id']))
+    penugasan_row = cursor.fetchone()
+    penugasan = dict(penugasan_row) if penugasan_row else {'target_individu': 25}
+    
+    cursor.execute("SELECT COUNT(*) FROM responden WHERE survei_id = ? AND petugas_id = ?", (survei_id, current_op['id']))
+    realisasi_count = cursor.fetchone()[0]
+    target_ind = penugasan.get('target_individu', 25) or 25
+    sisa_sampel = max(0, target_ind - realisasi_count)
+    persen_sampel = min(100, round((realisasi_count / target_ind) * 100, 1))
+    
+    resp_id = request.args.get('resp_id')
+    conn.close()
+    
+    return render_template(
+        'operator/sukses.html',
+        survei=dict(survei),
+        penugasan=penugasan,
+        current_operator=current_op,
+        all_active_petugas=all_active,
+        realisasi_count=realisasi_count,
+        sisa_sampel=sisa_sampel,
+        persen_sampel=persen_sampel,
+        resp_id=resp_id
+    )
 
 if __name__ == '__main__':
     init_db()

@@ -20,9 +20,13 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
       
       <div class="flex items-center gap-4 sm:gap-6">
-        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-          {{ petugas.nama[0]|upper }}
-        </div>
+        {% if petugas.foto %}
+          <img src="{{ petugas.foto if petugas.foto.startswith('http') else url_for('static', filename=petugas.foto) }}" alt="{{ petugas.nama }}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-blue-400 shadow-md">
+        {% else %}
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+            {{ petugas.nama[0]|upper }}
+          </div>
+        {% endif %}
         <div>
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             <span class="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">{{ petugas.nip }}</span>
@@ -35,8 +39,13 @@
         </div>
       </div>
 
-      <!-- Contact Actions -->
+      <!-- Contact & Operator Actions -->
       <div class="flex items-center gap-2 flex-wrap">
+        <a href="{{ url_for('operator_switch', id=petugas.id) }}" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-xl transition">
+          <i class="fa-solid fa-right-to-bracket text-sm"></i>
+          <span>Buka Portal Operator Ini</span>
+        </a>
+
         {% if petugas.no_hp %}
         <a href="https://wa.me/{{ petugas.no_hp|replace(' ', '')|replace('-', '')|replace('+', '')|replace('^0', '62') }}" target="_blank" class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition">
           <i class="fa-brands fa-whatsapp text-sm"></i>

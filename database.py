@@ -26,9 +26,16 @@ def init_db():
             wilayah TEXT,
             jabatan TEXT DEFAULT 'Petugas Lapangan',
             status TEXT DEFAULT 'Aktif',
+            foto TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # Migration check untuk foto jika tabel sudah ada sebelumnya
+    cursor.execute("PRAGMA table_info(petugas)")
+    col_names = [r[1] for r in cursor.fetchall()]
+    if 'foto' not in col_names:
+        cursor.execute("ALTER TABLE petugas ADD COLUMN foto TEXT")
     
     # 2. Tabel Survei
     cursor.execute('''
