@@ -1,6 +1,6 @@
-# 📊 SiSurvei - Sistem Informasi & Manajemen Kegiatan Survei Terpadu
+# 📊 Simanja (SiSurvei) - Sistem Informasi & Manajemen Kegiatan Survei Terpadu
 
-Aplikasi web modern, responsif, dan komprehensif untuk mengelola seluruh siklus kegiatan survei lapangan maupun survei publik: mulai dari pembuatan instrumen survei, perancangan aneka tipe pertanyaan secara visual (drag-and-drop & inline editor), pengelolaan data petugas/enumerator lapangan, pengisian kuisioner oleh responden atau petugas, hingga dashboard hasil survei interaktif dengan visualisasi data otomatis dan ekspor laporan ke Excel/CSV.
+Aplikasi web modern, responsif, dan komprehensif untuk mengelola seluruh siklus kegiatan survei lapangan maupun survei publik: mulai dari pembuatan instrumen survei, perancangan aneka tipe pertanyaan secara visual (drag-and-drop & inline editor), pengelolaan data petugas/enumerator lapangan, pengisian kuisioner oleh responden atau petugas dengan sensor GPS titik koordinat dan peta interaktif, portal khusus petugas yang kompatibel dengan HP Android, hingga dashboard hasil survei interaktif dengan visualisasi data otomatis dan ekspor laporan ke Excel/CSV.
 
 ---
 
@@ -180,7 +180,7 @@ c:\sisurvei\
 ---
 
 ## 🧪 Hasil Pengujian Sistem
-Seluruh fungsionalitas telah diverifikasi melalui pengujian otomatis integrasi (20 skenario lolos 100%):
+Seluruh fungsionalitas telah diverifikasi melalui pengujian otomatis integrasi (27 skenario pengujian lolos 100%):
 - ✅ Dashboard Utama & Kalkulasi Metrik Agregat
 - ✅ Listing Survei, Filter Kategori & Status
 - ✅ Question Builder & 8 Ragam Tipe Pertanyaan
@@ -188,9 +188,13 @@ Seluruh fungsionalitas telah diverifikasi melalui pengujian otomatis integrasi (
 - ✅ Pengisian Kuisioner Publik & Lapangan
 - ✅ Dashboard Hasil & Visualisasi Chart.js
 - ✅ Pengelolaan Data Petugas (dengan Variabel Foto Profil & Upload)
-- ✅ Ekspor Laporan Excel (`.xlsx`) & CSV (`.csv`)
-- ✅ Modal Penampil Lembar Jawaban Lengkap Responden
+- ✅ Ekspor Laporan Excel (`.xlsx`) & CSV (`.csv`) menyertakan Pendidikan & Titik Koordinat
+- ✅ Modal Penampil Lembar Jawaban Lengkap Responden dengan tautan Google Maps
 - ✅ Portal Level Operator: Hanya Menu Profil & Tugas Survei
 - ✅ Data Keikutsertaan Kelompok Tugas Survei & Kuota Sampel yang Ditentukan
 - ✅ Form Kuisioner Khusus Operator dengan Pelacak Nomor Sampel Terkunci
 - ✅ Alur Lanjut Input Sampel Berikutnya bagi Enumerator Lapangan
+- ✅ Sistem Autentikasi & Login Dual Role (Admin & Petugas Enumerator)
+- ✅ Input Titik Koordinat GPS Otomatis & Peta Interaktif Leaflet
+- ✅ Variabel Pendidikan Terakhir pada Profil Responden
+- ✅ Kompatibilitas Penuh HP Android (PWA Manifest, Safe Area, Scan QR Code Login)
