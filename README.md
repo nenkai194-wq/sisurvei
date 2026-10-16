@@ -122,14 +122,75 @@ c:\sisurvei\
 
 ---
 
+### 6. 📱 Portal Level Operator / Petugas Enumerator (`/operator`)
+Khusus dirancang untuk petugas lapangan dengan antarmuka yang simpel, fokus, dan hanya menampilkan **2 menu utama**:
+- **Menu 1: Profil Petugas Enumerator (`/operator/profil`)**:
+  - Menampilkan foto profil petugas, NIP, Nama Lengkap, Jabatan, Wilayah Penugasan, dan Status.
+  - Kartu statistik kumulatif: Total Survei Ditugaskan, Total Target Sampel, Total Sampel Selesai, dan Persentase Capaian Kumulatif.
+  - Form untuk memperbarui data diri, nomor WhatsApp, email, wilayah, dan fitur unggah foto profil (mendukung upload file gambar atau URL foto).
+- **Menu 2: Halaman Tugas Survei (`/operator/tugas`)**:
+  - Menampilkan data keikutsertaan sebagai petugas sesuai kelompok tugas survei (misal: *Koordinator Lapangan*, *Petugas Lapangan / Enumerator*, *Verifikator*).
+  - **Kuota Sampel yang Ditentukan**: Menampilkan target sampel individu (misal 25 responden), realisasi sampel yang telah dikerjakan, sisa sampel yang belum tuntas, dan progress bar capaian.
+  - **Tombol Utama: "Buka Form Kuisioner / Mulai Input Sampel"**: Langsung membuka kuisioner survei tersebut dengan identitas petugas terkunci secara otomatis.
+  - **Kuisioner Khusus Operator (`/operator/survei/<id>/isi`)**: Menampilkan banner penugasan dan pelacak nomor sampel ("Sedang Menginput: Sampel ke-X dari Y target").
+  - **Selesai Input Sampel**: Halaman konfirmasi capaian sampel dengan tombol **"Lanjut Input Sampel Berikutnya"** untuk mempercepat proses pencatatan data lapangan.
+  - Fitur penukar akun (*Account Switcher*) untuk berpindah profil petugas dengan mudah saat demonstrasi maupun penggunaan bersama.
+
+---
+
+## 📁 Struktur Direktori Proyek
+
+```
+c:\sisurvei\
+├── app.py                      # Server Flask utama (routing, API, ekspor, analitik, portal operator)
+├── database.py                 # Skema basis data SQLite & migration kolom foto
+├── seed_data.py                # Data awal realistis (petugas berfoto, aneka survei, responden, jawaban)
+├── test_app.py                 # Pengujian otomatis integrasi (20 skenario tes lolos 100%)
+├── run.bat                     # Script launcher sekali klik untuk Windows
+├── README.md                   # Dokumentasi lengkap sistem
+├── sisurvei.db                 # Database SQLite lokal (dibuat otomatis)
+├── static/
+│   └── uploads/petugas/        # Direktori penyimpanan file upload foto petugas
+├── templates/                  # Template HTML (Jinja2 + Tailwind CSS + FontAwesome + Chart.js)
+│   ├── base.html               # Layout induk Admin (sidebar, navbar, modal)
+│   ├── dashboard.html          # Dashboard eksekutif utama & visualisasi grafik
+│   ├── operator/               # Template Khusus Level Operator / Enumerator
+│   │   ├── base.html           # Layout khusus operator (hanya menu Profil & Tugas Survei)
+│   │   ├── tugas.html          # Halaman tugas survei, kelompok tugas, kuota sampel & progress
+│   │   ├── profil.html         # Profil petugas enumerator & form update data/foto
+│   │   ├── isi.html            # Form pengisian kuisioner dengan pelacak target sampel
+│   │   └── sukses.html         # Halaman sukses submit sampel dengan tombol lanjut input
+│   ├── surveys/
+│   │   ├── index.html          # Daftar kegiatan survei, status badge, progress bar, aksi
+│   │   ├── create.html         # Form pendaftaran survei baru & penugasan petugas
+│   │   ├── edit.html           # Form edit metadata survei & penugasan tim
+│   │   ├── builder.html        # Perancang pertanyaan visual dinamis (8 tipe pertanyaan)
+│   │   ├── fill.html           # Form pengisian kuisioner publik/lapangan interaktif
+│   │   ├── thank_you.html      # Halaman konfirmasi sukses setelah submit publik
+│   │   ├── closed.html         # Halaman jika survei berstatus tidak aktif/ditutup
+│   │   └── results.html        # Dashboard hasil & analisis survei (grafik per soal & ekspor)
+│   ├── petugas/
+│   │   ├── index.html          # Direktori petugas survei (dengan foto) & modal tambah/edit
+│   │   └── detail.html         # Profil petugas, foto, metrik kinerja, dan riwayat penginputan
+│   └── responses/
+│       └── index.html          # Repositori seluruh kuisioner responden lintas survei
+└── static/                     # Aset statis pendukung
+```
+
+---
+
 ## 🧪 Hasil Pengujian Sistem
-Seluruh fungsionalitas telah diverifikasi melalui pengujian otomatis integrasi:
+Seluruh fungsionalitas telah diverifikasi melalui pengujian otomatis integrasi (20 skenario lolos 100%):
 - ✅ Dashboard Utama & Kalkulasi Metrik Agregat
 - ✅ Listing Survei, Filter Kategori & Status
 - ✅ Question Builder & 8 Ragam Tipe Pertanyaan
 - ✅ REST API Builder (Tambah, Ubah, Urutkan, Hapus Pertanyaan)
 - ✅ Pengisian Kuisioner Publik & Lapangan
 - ✅ Dashboard Hasil & Visualisasi Chart.js
-- ✅ Pengelolaan Data Petugas & Tracking Kinerja
+- ✅ Pengelolaan Data Petugas (dengan Variabel Foto Profil & Upload)
 - ✅ Ekspor Laporan Excel (`.xlsx`) & CSV (`.csv`)
 - ✅ Modal Penampil Lembar Jawaban Lengkap Responden
+- ✅ Portal Level Operator: Hanya Menu Profil & Tugas Survei
+- ✅ Data Keikutsertaan Kelompok Tugas Survei & Kuota Sampel yang Ditentukan
+- ✅ Form Kuisioner Khusus Operator dengan Pelacak Nomor Sampel Terkunci
+- ✅ Alur Lanjut Input Sampel Berikutnya bagi Enumerator Lapangan
